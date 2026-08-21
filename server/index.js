@@ -53,7 +53,6 @@ app.post("/api/notifications/read", (req, res) => {
 });
 
 // --- Attendance ---
-// { id, studentId, unitCode, date, status: "Present" | "Absent" }
 let attendance = [];
 let nextAttendanceId = 1;
 
@@ -86,7 +85,6 @@ app.delete("/api/attendance/:id", (req, res) => {
 });
 
 // --- Assessments ---
-// { id, unitCode, title, dueDate, weight, description }
 let assessments = [
   { id: 1, unitCode: "ICT307", title: "Assessment 1: Project Initiation", dueDate: "2026-08-23", weight: 20, description: "Initial project proposal and scope document." }
 ];
@@ -104,7 +102,6 @@ app.post("/api/assessments", (req, res) => {
   const assessment = { id: nextAssessmentId++, unitCode, title, dueDate, weight: Number(weight) || 0, description: description || "" };
   assessments.push(assessment);
 
-  const unit = units.find(u => u.code === unitCode);
   students.filter(s => s.unitCode === unitCode).forEach(s => {
     notify(s.email, `New assessment posted for ${unitCode}: "${title}" — due ${dueDate}.`);
   });
@@ -216,83 +213,4 @@ app.delete("/api/students/:id", (req, res) => {
   res.json({ success: true, students });
 });
 
-// --- Chatbot ---
-const answers = [
-  {
-    keys: ["semester", "date", "calendar"],
-    text: "The Semester 2, 2026 academic calendar runs from 24 July to 20 November 2026, with the census date on 17 August 2026 and final exams from 9-20 November 2026.",
-    sources: ["Academic Calendar 2026"]
-  },
-  {
-    keys: ["fee", "pay", "tuition"],
-    text: "Tuition is $3,850 per unit ($15,400 per semester at a full-time load of 4 units). Fees are due by the census date, payable via card, bank transfer, or BPAY through the Student Portal. If payment is not received within 2 days of the due date, a $150 late payment fee is applied, and your enrolment may be placed on hold until the balance is cleared.",
-    sources: ["Fee Schedule 2026", "Student Finance Policy v3.2"]
-  },
-  {
-    keys: ["library", "book", "borrow"],
-    text: "The CIHE Library holds over 45,000 physical titles and access to 200,000+ e-books and academic journals across IT, Business, and Health disciplines. Located on Level 2, Building A. Open Mon-Fri 8am-9pm, Sat 9am-5pm. Students can borrow up to 10 items at a time for a 3-week loan period.",
-    sources: ["Campus Guide 2026", "Library Services Handbook"]
-  },
-  {
-    keys: ["late", "submission", "penalty", "extension"],
-    text: "Late submissions lose 10% of the total available marks per calendar day. Submissions more than 10 days late without an approved extension will receive a mark of zero.",
-    sources: ["Assessment Policy v4.1"]
-  },
-  {
-    keys: ["enrol", "enroll", "entry", "requirement", "bit"],
-    getText: () => {
-      const totalSeats = units.reduce((sum, u) => sum + u.totalSeats, 0);
-      const totalEnrolled = units.reduce((sum, u) => sum + u.enrolled, 0);
-      return `Across current units, there are ${totalSeats} total seats, with ${totalEnrolled} students enrolled and ${totalSeats - totalEnrolled} seats remaining. Entry requires completion of Year 12 (or equivalent), an IELTS score of 6.0 (no band below 5.5), and certified academic transcripts.`;
-    },
-    sources: ["Course Catalog 2026", "Admissions Office — Live Enrollment System"]
-  },
-  {
-    keys: ["assessment", "assignment", "due"],
-    getText: () => {
-      if (assessments.length === 0) return "There are currently no assessments scheduled.";
-      const list = assessments.map(a => `${a.title} (${a.unitCode}) — due ${a.dueDate}`).join("; ");
-      return `Upcoming assessments: ${list}.`;
-    },
-    sources: ["Unit Assessment Schedule 2026"]
-  }
-];
-
-let queryLog = [];
-
-function findAnswer(text) {
-  text = text.toLowerCase();
-  for (const a of answers) {
-    if (a.keys.some(k => text.includes(k))) {
-      return { text: a.getText ? a.getText() : a.text, sources: a.sources };
-    }
-  }
-  return { text: "I'm not sure — try Student Services.", sources: ["Student Handbook"], unmatched: true };
-}
-
-app.post("/api/chat", (req, res) => {
-  const message = req.body.message || "";
-  const result = findAnswer(message);
-  queryLog.unshift({
-    question: message,
-    time: new Date().toISOString(),
-    status: result.unmatched ? "Escalated" : "Answered"
-  });
-  queryLog = queryLog.slice(0, 20);
-  res.json(result);
-});
-
-app.get("/api/dashboard", (req, res) => {
-  const total = queryLog.length;
-  const answered = queryLog.filter(q => q.status === "Answered").length;
-  const satisfaction = total > 0 ? Math.round((answered / total) * 100) : 100;
-  res.json({
-    totalQueries: total,
-    avgResponseTime: "1.2s",
-    satisfactionRate: satisfaction,
-    documentsIndexed: answers.length,
-    recentQueries: queryLog.slice(0, 5)
-  });
-});
-
-app.listen(5000, () => console.log("Server running on http://localhost:5000"));
+app.listen(5001, () => console.log("Server running on http://localhost:5001"));

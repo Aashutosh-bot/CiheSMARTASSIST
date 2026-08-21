@@ -7,8 +7,16 @@ export default defineConfig({
     port: 3000,
     open: true,
     proxy: {
-      '/api': {
+      '/api/chat': {
         target: 'http://localhost:5000',
+        changeOrigin: true
+      },
+      '/api/dashboard': {
+        target: 'http://localhost:5000',
+        changeOrigin: true
+      },
+      '/api': {
+        target: 'http://localhost:5001',
         changeOrigin: true
       }
     }
