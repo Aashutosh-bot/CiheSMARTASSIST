@@ -1,2 +1,11 @@
+HEAD
 client/node_modules/
 server/node_modules/
+
+venv/
+__pycache__/
+*.pyc
+debug_output.json
+test_moodle.py
+.env
+dfbf3c89f1fee564f29d3ca41f5ad5a1e2b56525
