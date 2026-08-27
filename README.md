@@ -4,7 +4,7 @@ CIHE SmartAssist is an AI-powered student support assistant designed to help stu
 
 Instead of manually searching through large student handbooks and documents, students can ask questions in natural language. SmartAssist searches the available CIHE documents, identifies the most relevant information, and uses it to generate a helpful response.
 
-What Does CIHE SmartAssist Do?
+## What Does CIHE SmartAssist Do?
 
 CIHE SmartAssist acts as an intelligent first point of contact for students.
 
@@ -19,7 +19,7 @@ The system searches its collection of CIHE documents and retrieves the informati
 
 If the system cannot find sufficiently relevant information, it avoids making up an answer and instead directs the student to Student Services.
 
-How It Works
+## How It Works
 
 CIHE SmartAssist uses a Retrieval-Augmented Generation (RAG) approach.
 
@@ -34,39 +34,39 @@ The basic process is:
 
 This approach helps keep responses grounded in the information available in the CIHE documents rather than allowing the AI to freely guess.
 
-Key Features
+## Key Features
 
-# AI Student Assistant
+**AI Student Assistant**
 
 Students can interact with SmartAssist using natural-language questions.
 
-# Document-Based Answers
+**Document-Based Answers**
 
 The system uses CIHE-provided documents as its knowledge source.
 
-# Semantic Search
+**Semantic Search**
 
 SmartAssist uses embeddings and similarity search to find information that is semantically related to a student’s question.
 
-# RAG Architecture
+**RAG Architecture**
 
 The Retrieval-Augmented Generation architecture combines document retrieval with AI-generated responses.
 
-# Source Awareness
+**Source Awareness**
 
 Responses can identify the document from which the relevant information was retrieved.
 
-# Hallucination Control
+**Hallucination Control**
 
 When a question does not have a sufficiently relevant match in the available documents, SmartAssist can avoid generating an unsupported answer and direct the student to Student Services.
 
-# Dashboard
+**Dashboard**
 
 The backend includes a dashboard for tracking basic query information, including total queries, answered queries, indexed documents, and recent questions.
 
-Technology
+## Technology
 
-The project currently uses:
+### The project currently uses:
 
 * Python
 * FastAPI – Backend API
@@ -76,7 +76,7 @@ The project currently uses:
 * RAG – Retrieval-Augmented Generation
 * Pydantic – API request validation
 
-Project Structure
+## Project Structure
 
 CiheSMARTASSIST/
 │
@@ -91,7 +91,7 @@ CiheSMARTASSIST/
 ├── test_*.py            # Project tests
 └── generator.py
 
-Purpose
+## Purpose
 
 The goal of CIHE SmartAssist is to make student support information:
 
@@ -102,9 +102,9 @@ The goal of CIHE SmartAssist is to make student support information:
 
 SmartAssist is intended to reduce the time students spend searching through documents and provide a convenient first step when they need information.
 
-Project Status
+## Project Status
 
-# Currently in development
+**Currently in development**
 
 The project is being developed incrementally, with future improvements planned for the assistant, knowledge sources, user experience, security, and student-support functionality.
 
