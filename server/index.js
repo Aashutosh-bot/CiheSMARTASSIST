@@ -20,17 +20,32 @@ app.post("/api/admin-login", (req, res) => {
 
 // --- Units ---
 let units = [
-  { code: "ICT307", name: "AI-Based Systems Development", semester: "Semester 2, 2026", totalSeats: 120, enrolled: 97 },
-  { code: "ICT301", name: "Information Technology Project Management", semester: "Semester 2, 2026", totalSeats: 100, enrolled: 82 },
-  { code: "ICT305", name: "Topics in IT", semester: "Semester 2, 2026", totalSeats: 90, enrolled: 60 },
-  { code: "ICT210", name: "Big Data for Software Development", semester: "Semester 2, 2026", totalSeats: 80, enrolled: 45 }
+  { code: "ICT307", name: "AI-Based Systems Development", semester: "Semester 2, 2026", totalSeats: 30, enrolled: 0 },
+  { code: "ICT301", name: "Information Technology Project Management", semester: "Semester 2, 2026", totalSeats: 30, enrolled: 0 },
+  { code: "ICT305", name: "Topics in IT", semester: "Semester 2, 2026", totalSeats: 30, enrolled: 0 },
+  { code: "ICT210", name: "Big Data for Software Development", semester: "Semester 2, 2026", totalSeats: 30, enrolled: 0 }
 ];
 
 // --- Students ---
 let students = [
-  { id: 1, name: "Roshan Ghimire", email: "student@cihe.edu.au", password: "password123", unitCode: "ICT307" }
+  { id: 1, name: "Roshan Ghimire", email: "student@cihe.edu.au", password: "password123", studentId: "CIHE-2026-00123", joiningDate: "2026-02-01", unitCodes: ["ICT307"] }
 ];
 let nextStudentId = 2;
+let nextStudentSeq = 124;
+
+function generateStudentId(joiningDate) {
+  const year = joiningDate ? new Date(joiningDate).getFullYear() : new Date().getFullYear();
+  let candidate;
+  do {
+    candidate = `CIHE-${year}-${String(nextStudentSeq++).padStart(5, "0")}`;
+  } while (students.some(s => s.studentId === candidate));
+  return candidate;
+}
+
+function adjustEnrollment(unitCode, delta) {
+  const unit = units.find(u => u.code === unitCode);
+  if (unit) unit.enrolled = Math.max(0, unit.enrolled + delta);
+}
 
 // --- Notifications ---
 let notifications = [];
@@ -71,10 +86,11 @@ app.get("/api/attendance/student/:email", (req, res) => {
 });
 
 app.post("/api/attendance", (req, res) => {
-  const { studentId, date, status } = req.body;
+  const { studentId, unitCode, date, status } = req.body;
   const student = students.find(s => s.id === Number(studentId));
   if (!student) return res.status(404).json({ success: false, message: "Student not found." });
-  const record = { id: nextAttendanceId++, studentId: Number(studentId), unitCode: student.unitCode, date, status };
+  const finalUnitCode = unitCode || (student.unitCodes && student.unitCodes[0]) || "";
+  const record = { id: nextAttendanceId++, studentId: Number(studentId), unitCode: finalUnitCode, date, status };
   attendance.push(record);
   res.json({ success: true, attendance });
 });
@@ -102,7 +118,7 @@ app.post("/api/assessments", (req, res) => {
   const assessment = { id: nextAssessmentId++, unitCode, title, dueDate, weight: Number(weight) || 0, description: description || "" };
   assessments.push(assessment);
 
-  students.filter(s => s.unitCode === unitCode).forEach(s => {
+  students.filter(s => (s.unitCodes || []).includes(unitCode)).forEach(s => {
     notify(s.email, `New assessment posted for ${unitCode}: "${title}" — due ${dueDate}.`);
   });
 
@@ -160,20 +176,96 @@ app.delete("/api/units/:code", (req, res) => {
   res.json({ success: true, units });
 });
 
+// --- Timetable ---
+let timetableSessions = [
+  { id: 1, unitCode: "ICT307", dayOfWeek: "Mon", startTime: "10:00", endTime: "12:00", teacher: "Dr. Sarah Chen", room: "B1.12", mode: "Lecture", location: "Building B, Level 1", semester: "Semester 2, 2026" },
+  { id: 2, unitCode: "ICT301", dayOfWeek: "Tue", startTime: "13:00", endTime: "15:00", teacher: "Dr. James Cooper", room: "A2.05", mode: "Workshop", location: "Building A, Level 2", semester: "Semester 2, 2026" },
+  { id: 3, unitCode: "ICT305", dayOfWeek: "Wed", startTime: "09:00", endTime: "11:00", teacher: "Dr. Priya Nair", room: "C3.08", mode: "Lecture", location: "Building C, Level 3", semester: "Semester 2, 2026" },
+  { id: 4, unitCode: "ICT210", dayOfWeek: "Thu", startTime: "14:00", endTime: "16:00", teacher: "Dr. Marcus Lee", room: "B2.10", mode: "Lab", location: "Building B, Level 2", semester: "Semester 2, 2026" }
+];
+let nextTimetableId = 5;
+
+app.get("/api/timetable", (req, res) => {
+  const { unitCode } = req.query;
+  const list = unitCode ? timetableSessions.filter(t => t.unitCode === unitCode) : timetableSessions;
+  res.json(list);
+});
+
+app.post("/api/timetable", (req, res) => {
+  const { unitCode, dayOfWeek, startTime, endTime, teacher, room, mode, location, semester } = req.body;
+  if (!unitCode || !dayOfWeek || !startTime || !endTime) {
+    return res.status(400).json({ success: false, message: "Unit, day, start time, and end time are required." });
+  }
+  const session = {
+    id: nextTimetableId++,
+    unitCode,
+    dayOfWeek,
+    startTime,
+    endTime,
+    teacher: teacher || "",
+    room: room || "",
+    mode: mode || "",
+    location: location || "",
+    semester: semester || "Semester 2, 2026"
+  };
+  timetableSessions.push(session);
+  res.json({ success: true, timetableSessions });
+});
+
+app.put("/api/timetable/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const session = timetableSessions.find(t => t.id === id);
+  if (!session) return res.status(404).json({ success: false, message: "Session not found." });
+  const { unitCode, dayOfWeek, startTime, endTime, teacher, room, mode, location, semester } = req.body;
+  if (unitCode) session.unitCode = unitCode;
+  if (dayOfWeek) session.dayOfWeek = dayOfWeek;
+  if (startTime) session.startTime = startTime;
+  if (endTime) session.endTime = endTime;
+  if (teacher !== undefined) session.teacher = teacher;
+  if (room !== undefined) session.room = room;
+  if (mode !== undefined) session.mode = mode;
+  if (location !== undefined) session.location = location;
+  if (semester !== undefined) session.semester = semester;
+  res.json({ success: true, timetableSessions });
+});
+
+app.delete("/api/timetable/:id", (req, res) => {
+  timetableSessions = timetableSessions.filter(t => t.id !== Number(req.params.id));
+  res.json({ success: true, timetableSessions });
+});
+
 // --- Students CRUD ---
 app.get("/api/students", (req, res) => res.json(students));
 
+app.get("/api/students/me", (req, res) => {
+  const email = req.query.email;
+  const student = students.find(s => s.email === email);
+  if (!student) return res.status(404).json({ success: false, message: "Student not found." });
+  const { password, ...safe } = student;
+  res.json({ success: true, student: safe });
+});
+
 app.post("/api/students", (req, res) => {
-  const { name, email, unitCode } = req.body;
+  const { name, email, unitCodes, studentId, joiningDate } = req.body;
   if (!name || !email) return res.status(400).json({ success: false, message: "Name and email required." });
   if (students.find(s => s.email === email)) return res.status(400).json({ success: false, message: "A student with this email already exists." });
-  const student = { id: nextStudentId++, name, email, password: "", unitCode: unitCode || "" };
+  if (studentId && students.find(s => s.studentId === studentId)) return res.status(400).json({ success: false, message: "A student with this Student ID already exists." });
+  const codes = Array.isArray(unitCodes) ? unitCodes.filter(Boolean) : [];
+  const student = {
+    id: nextStudentId++,
+    name,
+    email,
+    password: "",
+    studentId: studentId && studentId.trim() ? studentId.trim() : generateStudentId(joiningDate),
+    joiningDate: joiningDate || "",
+    unitCodes: codes
+  };
   students.push(student);
-  const unit = units.find(u => u.code === unitCode);
-  if (unit) {
-    unit.enrolled += 1;
-    notify(email, `You have been enrolled in ${unit.code} — ${unit.name}.`);
-  }
+  codes.forEach(code => {
+    adjustEnrollment(code, 1);
+    const unit = units.find(u => u.code === code);
+    if (unit) notify(email, `You have been enrolled in ${unit.code} — ${unit.name}.`);
+  });
   res.json({ success: true, students });
 });
 
@@ -182,21 +274,26 @@ app.put("/api/students/:id", (req, res) => {
   const student = students.find(s => s.id === id);
   if (!student) return res.status(404).json({ success: false, message: "Student not found." });
 
-  const { name, email, unitCode } = req.body;
+  const { name, email, unitCodes, studentId, joiningDate } = req.body;
 
-  if (unitCode !== undefined && unitCode !== student.unitCode) {
-    const oldUnit = units.find(u => u.code === student.unitCode);
-    if (oldUnit && oldUnit.enrolled > 0) oldUnit.enrolled -= 1;
-    const newUnit = units.find(u => u.code === unitCode);
-    if (newUnit) {
-      newUnit.enrolled += 1;
-      notify(student.email, `You have been enrolled in ${newUnit.code} — ${newUnit.name}.`);
-    }
-    student.unitCode = unitCode;
+  if (unitCodes !== undefined) {
+    const newCodes = Array.isArray(unitCodes) ? unitCodes.filter(Boolean) : [];
+    const oldCodes = student.unitCodes || [];
+    const added = newCodes.filter(c => !oldCodes.includes(c));
+    const removed = oldCodes.filter(c => !newCodes.includes(c));
+    removed.forEach(code => adjustEnrollment(code, -1));
+    added.forEach(code => {
+      adjustEnrollment(code, 1);
+      const unit = units.find(u => u.code === code);
+      if (unit) notify(student.email, `You have been enrolled in ${unit.code} — ${unit.name}.`);
+    });
+    student.unitCodes = newCodes;
   }
 
   if (name) student.name = name;
   if (email) student.email = email;
+  if (studentId && studentId.trim()) student.studentId = studentId.trim();
+  if (joiningDate !== undefined) student.joiningDate = joiningDate;
 
   res.json({ success: true, students });
 });
@@ -205,12 +302,90 @@ app.delete("/api/students/:id", (req, res) => {
   const id = Number(req.params.id);
   const student = students.find(s => s.id === id);
   if (student) {
-    const unit = units.find(u => u.code === student.unitCode);
-    if (unit && unit.enrolled > 0) unit.enrolled -= 1;
+    (student.unitCodes || []).forEach(code => adjustEnrollment(code, -1));
   }
   students = students.filter(s => s.id !== id);
   attendance = attendance.filter(a => a.studentId !== id);
   res.json({ success: true, students });
 });
 
-app.listen(5001, () => console.log("Server running on http://localhost:5001"));
+// --- Chatbot ---
+const answers = [
+  {
+    keys: ["semester", "date", "calendar"],
+    text: "The Semester 2, 2026 academic calendar runs from 24 July to 20 November 2026, with the census date on 17 August 2026 and final exams from 9-20 November 2026.",
+    sources: ["Academic Calendar 2026"]
+  },
+  {
+    keys: ["fee", "pay", "tuition"],
+    text: "Tuition is $3,850 per unit ($15,400 per semester at a full-time load of 4 units). Fees are due by the census date, payable via card, bank transfer, or BPAY through the Student Portal. If payment is not received within 2 days of the due date, a $150 late payment fee is applied, and your enrolment may be placed on hold until the balance is cleared.",
+    sources: ["Fee Schedule 2026", "Student Finance Policy v3.2"]
+  },
+  {
+    keys: ["library", "book", "borrow"],
+    text: "The CIHE Library holds over 45,000 physical titles and access to 200,000+ e-books and academic journals across IT, Business, and Health disciplines. Located on Level 2, Building A. Open Mon-Fri 8am-9pm, Sat 9am-5pm. Students can borrow up to 10 items at a time for a 3-week loan period.",
+    sources: ["Campus Guide 2026", "Library Services Handbook"]
+  },
+  {
+    keys: ["late", "submission", "penalty", "extension"],
+    text: "Late submissions lose 10% of the total available marks per calendar day. Submissions more than 10 days late without an approved extension will receive a mark of zero.",
+    sources: ["Assessment Policy v4.1"]
+  },
+  {
+    keys: ["enrol", "enroll", "entry", "requirement", "bit"],
+    getText: () => {
+      const totalSeats = units.reduce((sum, u) => sum + u.totalSeats, 0);
+      const totalEnrolled = units.reduce((sum, u) => sum + u.enrolled, 0);
+      return `Across current units, there are ${totalSeats} total seats, with ${totalEnrolled} students enrolled and ${totalSeats - totalEnrolled} seats remaining. Entry requires completion of Year 12 (or equivalent), an IELTS score of 6.0 (no band below 5.5), and certified academic transcripts.`;
+    },
+    sources: ["Course Catalog 2026", "Admissions Office — Live Enrollment System"]
+  },
+  {
+    keys: ["assessment", "assignment", "due"],
+    getText: () => {
+      if (assessments.length === 0) return "There are currently no assessments scheduled.";
+      const list = assessments.map(a => `${a.title} (${a.unitCode}) — due ${a.dueDate}`).join("; ");
+      return `Upcoming assessments: ${list}.`;
+    },
+    sources: ["Unit Assessment Schedule 2026"]
+  }
+];
+
+let queryLog = [];
+
+function findAnswer(text) {
+  text = text.toLowerCase();
+  for (const a of answers) {
+    if (a.keys.some(k => text.includes(k))) {
+      return { text: a.getText ? a.getText() : a.text, sources: a.sources };
+    }
+  }
+  return { text: "I'm not sure — try Student Services.", sources: ["Student Handbook"], unmatched: true };
+}
+
+app.post("/api/chat", (req, res) => {
+  const message = req.body.message || "";
+  const result = findAnswer(message);
+  queryLog.unshift({
+    question: message,
+    time: new Date().toISOString(),
+    status: result.unmatched ? "Escalated" : "Answered"
+  });
+  queryLog = queryLog.slice(0, 20);
+  res.json(result);
+});
+
+app.get("/api/dashboard", (req, res) => {
+  const total = queryLog.length;
+  const answered = queryLog.filter(q => q.status === "Answered").length;
+  const satisfaction = total > 0 ? Math.round((answered / total) * 100) : 100;
+  res.json({
+    totalQueries: total,
+    avgResponseTime: "1.2s",
+    satisfactionRate: satisfaction,
+    documentsIndexed: answers.length,
+    recentQueries: queryLog.slice(0, 5)
+  });
+});
+
+app.listen(5000, () => console.log("Server running on http://localhost:5000"));

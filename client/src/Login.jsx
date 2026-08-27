@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Footer from "./Footer";
 
 function Login() {
   const [showModal, setShowModal] = useState(false);
@@ -223,15 +224,7 @@ function Login() {
         </div>
       </div>
 
-      {/* FOOTER */}
-      <div style={{ background: "#e8a020", padding: "24px 40px", color: "#0f2a52" }}>
-        <div style={{ display: "flex", gap: 24, fontSize: 13, fontWeight: "bold", marginBottom: 10, flexWrap: "wrap" }}>
-          <span>🔖 https://www.cihe.edu.au</span>
-          <span>✉️ info@cihe.edu.au</span>
-          <span>📱 1300 171 094</span>
-        </div>
-        <div style={{ fontSize: 13, fontWeight: "bold" }}>© 2018–2026 CIHE Australia</div>
-      </div>
+      <Footer />
 
       {/* LOGIN MODAL */}
       {showModal && (
