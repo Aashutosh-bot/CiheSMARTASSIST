@@ -1,0 +1,9 @@
+ rag is better for uni help desk for our project because
+   it gives more accurate resuklt
+it uses documents from uni websites
+
+how does rag work 
+its simple the client or the student ask question which is embeded in binary number so that a computer can understand the text
+after it the embedded text is send in vector database where vector data base searches for relevant document by using semantic searchand pushes the retrive document to open ai
+in our case the open api which will generate answer and provides the answer to the student
+
