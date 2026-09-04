@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Footer from "./Footer";
+import ciheCrest from "./assets/cihe-crest.jpg";
 
 function Login() {
   const [showModal, setShowModal] = useState(false);
@@ -139,87 +140,103 @@ function Login() {
     }
   }
 
-  const navLinks = ["Current Students", "Researchers", "Alumni", "Library", "Staff"];
-
   return (
     <div style={{ fontFamily: "Arial, sans-serif", background: "#f7f8fa", minHeight: "100vh" }}>
 
-      {/* TOP UTILITY BAR */}
-      <div style={{ background: "#f0f0f0", borderBottom: "1px solid #ddd", padding: "8px 40px", display: "flex", justifyContent: "flex-end", gap: 24, fontSize: 13, color: "#333" }}>
-        {navLinks.map((l, i) => <span key={i} style={{ cursor: "pointer" }}>{l}</span>)}
-      </div>
-
       {/* MAIN NAV */}
-      <div style={{ background: "white", padding: "16px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e0e0e0" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 46, height: 46, background: "#0f2a52", color: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "bold" }}>
-            CIHE
+      <div style={{ background: "white", borderBottom: "1px solid #e0e0e0" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 40px", boxSizing: "border-box", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 46, height: 46, background: "#0f2a52", color: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "bold" }}>
+              CIHE
+            </div>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: "bold", color: "#0f2a52", lineHeight: 1.1 }}>Crown Institute</div>
+              <div style={{ fontSize: 12, color: "#888" }}>of Higher Education</div>
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: "bold", color: "#0f2a52", lineHeight: 1.1 }}>Crown Institute</div>
-            <div style={{ fontSize: 12, color: "#888" }}>of Higher Education</div>
+          <div style={{ display: "flex", gap: 12 }}>
+            <button
+              onClick={() => openModal("student")}
+              style={{ background: "white", color: "#0f2a52", padding: "10px 22px", border: "2px solid #0f2a52", borderRadius: 6, fontWeight: "bold", fontSize: 14, cursor: "pointer" }}
+            >
+              Student Login
+            </button>
+            <button
+              onClick={() => openModal("admin")}
+              style={{ background: "#0f2a52", color: "white", padding: "10px 22px", border: "none", borderRadius: 6, fontWeight: "bold", fontSize: 14, cursor: "pointer" }}
+            >
+              Admin Login
+            </button>
           </div>
-        </div>
-        <div style={{ display: "flex", gap: 12 }}>
-          <button
-            onClick={() => openModal("student")}
-            style={{ background: "white", color: "#0f2a52", padding: "10px 22px", border: "2px solid #0f2a52", borderRadius: 6, fontWeight: "bold", fontSize: 14, cursor: "pointer" }}
-          >
-            Student Login
-          </button>
-          <button
-            onClick={() => openModal("admin")}
-            style={{ background: "#0f2a52", color: "white", padding: "10px 22px", border: "none", borderRadius: 6, fontWeight: "bold", fontSize: 14, cursor: "pointer" }}
-          >
-            Admin Login
-          </button>
         </div>
       </div>
 
       {/* HERO */}
-      <div style={{ background: "linear-gradient(135deg, #0f2a52 0%, #1c3f6e 100%)", color: "white", padding: "80px 40px", textAlign: "center" }}>
-        <div style={{ fontSize: 36, fontWeight: "bold", marginBottom: 16 }}>Welcome to CIHE</div>
-        <div style={{ fontSize: 16, color: "#cbd5e1", maxWidth: 560, margin: "0 auto 30px" }}>
-          Crown Institute of Higher Education — delivering quality, industry-relevant education in
-          Business, Information Technology, and Health.
+      <div style={{ position: "relative", background: "linear-gradient(135deg, #0f2a52 0%, #1c3f6e 100%)", color: "white", overflow: "hidden" }}>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage: `url(${ciheCrest})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            opacity: 0.12,
+          }}
+        />
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 1200, margin: "0 auto", padding: "110px 40px", boxSizing: "border-box", textAlign: "center" }}>
+          <div style={{ fontSize: 44, fontWeight: "bold", marginBottom: 20 }}>Welcome to CIHE</div>
+          <div style={{ fontSize: 18, color: "#cbd5e1", maxWidth: 640, margin: "0 auto 36px", lineHeight: 1.7 }}>
+            Crown Institute of Higher Education — delivering quality, industry-relevant education in
+            Business, Information Technology, and Health.
+          </div>
+          <button
+            onClick={() => openModal("student")}
+            style={{ background: "#e8a020", color: "white", padding: "16px 42px", border: "none", borderRadius: 6, fontWeight: "bold", fontSize: 16, cursor: "pointer" }}
+          >
+            Student Portal Login
+          </button>
         </div>
-        <button
-          onClick={() => openModal("student")}
-          style={{ background: "#e8a020", color: "white", padding: "14px 36px", border: "none", borderRadius: 6, fontWeight: "bold", fontSize: 15, cursor: "pointer" }}
-        >
-          Student Portal Login
-        </button>
       </div>
 
       {/* FEATURES */}
-      <div style={{ padding: "60px 40px", maxWidth: 1000, margin: "0 auto" }}>
-        <div style={{ fontSize: 24, fontWeight: "bold", color: "#0f2a52", textAlign: "center", marginBottom: 40 }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "90px 40px", boxSizing: "border-box" }}>
+        <div style={{ fontSize: 30, fontWeight: "bold", color: "#0f2a52", textAlign: "center", marginBottom: 48 }}>
           Everything you need, in one place
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 24 }}>
           {[
             { icon: "💬", title: "AI Helpdesk", text: "Get instant answers about enrolment, fees, timetables and more." },
             { icon: "🎓", title: "Manage Your Course", text: "View your units, semester details, and academic progress." },
             { icon: "📅", title: "Stay Organised", text: "Track key dates, assessments, and deadlines." },
-            { icon: "📖", title: "Library Access", text: "Search over 45,000 titles and 200,000+ e-books and journals." }
+            { icon: "📖", title: "Library Access", text: "Search over 45,000 titles and 200,000+ e-books and journals." },
+            { icon: "💰", title: "Scholarships", text: "Merit, equity and eligibility-based scholarships for domestic and international students." }
           ].map((f, i) => (
-            <div key={i} style={{ background: "white", borderRadius: 10, padding: "28px 22px", boxShadow: "0 2px 10px rgba(0,0,0,0.06)", textAlign: "center" }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>{f.icon}</div>
+            <div key={i} style={{ background: "white", borderRadius: 12, padding: "32px 18px", boxShadow: "0 2px 10px rgba(0,0,0,0.06)", textAlign: "center" }}>
+              <div style={{ fontSize: 34, marginBottom: 14 }}>{f.icon}</div>
               <div style={{ fontWeight: "bold", fontSize: 15, color: "#0f2a52", marginBottom: 8 }}>{f.title}</div>
-              <div style={{ fontSize: 13, color: "#666", lineHeight: 1.5 }}>{f.text}</div>
+              <div style={{ fontSize: 12.5, color: "#666", lineHeight: 1.55 }}>{f.text}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* ABOUT */}
-      <div style={{ background: "white", padding: "60px 40px", borderTop: "1px solid #e0e0e0" }}>
-        <div style={{ maxWidth: 800, margin: "0 auto", textAlign: "center" }}>
-          <div style={{ fontSize: 22, fontWeight: "bold", color: "#0f2a52", marginBottom: 16 }}>About CIHE</div>
-          <div style={{ fontSize: 14, color: "#555", lineHeight: 1.7 }}>
-            Crown Institute of Higher Education is committed to delivering quality, industry-relevant education
-            across Business, Information Technology, and Health disciplines, supported by a connected student portal
-            and AI-powered helpdesk.
+      <div style={{ background: "#f9fafb", borderTop: "3px solid #0f2a52", borderBottom: "1px solid #e0e0e0" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "70px 40px", boxSizing: "border-box", textAlign: "center" }}>
+          <div style={{ fontSize: 34, fontWeight: "bold", color: "#0f2a52", marginBottom: 8 }}>About CIHE Australia</div>
+          <div style={{ width: 56, height: 3, background: "#e8a020", margin: "0 auto 48px" }} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, textAlign: "left" }}>
+            <div style={{ fontSize: 17, color: "#444", lineHeight: 1.9 }}>
+              CIHE Australia is an independent higher education provider offering recognised, career-focused degrees
+              in a welcoming and student-centred learning environment. We are a boutique alternative to large
+              universities, with a strong focus on personalised teaching, practical learning and genuine student support.
+            </div>
+            <div style={{ fontSize: 17, color: "#444", lineHeight: 1.9 }}>
+              Our community brings together students from many cultural, educational and professional backgrounds.
+              We value learning that is inclusive, grounded in real-world practice and shaped by diverse global
+              perspectives.
+            </div>
           </div>
         </div>
       </div>

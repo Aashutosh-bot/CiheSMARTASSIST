@@ -318,7 +318,7 @@ const answers = [
   },
   {
     keys: ["fee", "pay", "tuition"],
-    text: "Tuition is $3,850 per unit ($15,400 per semester at a full-time load of 4 units). Fees are due by the census date, payable via card, bank transfer, or BPAY through the Student Portal. If payment is not received within 2 days of the due date, a $150 late payment fee is applied, and your enrolment may be placed on hold until the balance is cleared.",
+    text: "Tuition is $3,850 per unit ($15,400 per semester at a full-time load of 4 units). Fees are due by 10 January for Semester 1 and 20 June for Semester 2, payable via card, bank transfer, or BPAY through the Student Portal. If payment is not received within 2 days of the due date, a $150 late payment fee is applied, and your enrolment may be placed on hold until the balance is cleared.",
     sources: ["Fee Schedule 2026", "Student Finance Policy v3.2"]
   },
   {
