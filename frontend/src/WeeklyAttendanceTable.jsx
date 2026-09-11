@@ -1,4 +1,4 @@
-import { WEEKDAYS, SEMESTER_START, SEMESTER_END, buildWeeks, addDays, formatWeekRange, todayStr } from "./scheduleUtils";
+import { WEEKDAYS, SEMESTERS, DEFAULT_SEMESTER, buildWeeks, addDays, formatWeekRange, todayStr } from "./scheduleUtils";
 
 const NAVY = "#0f2a52";
 
@@ -18,14 +18,21 @@ function StatusBadge({ label }) {
   );
 }
 
-export default function WeeklyAttendanceTable({ unitCode, sessions, records }) {
+export default function WeeklyAttendanceTable({ unitCodes, sessions, records }) {
+  const codes = Array.isArray(unitCodes) ? unitCodes : [unitCodes];
+  const showUnitTags = codes.length > 1;
   const today = todayStr();
-  const unitSessions = (sessions || []).filter(s => s.unitCode === unitCode);
-  const classWeekdays = new Set(unitSessions.map(s => s.dayOfWeek));
-  const recordsByDate = {};
-  (records || []).filter(r => r.unitCode === unitCode).forEach(r => { recordsByDate[r.date] = r.status; });
+  const unitSessions = (sessions || []).filter(s => codes.includes(s.unitCode));
+  const sessionsByWeekday = {};
+  unitSessions.forEach(s => {
+    (sessionsByWeekday[s.dayOfWeek] = sessionsByWeekday[s.dayOfWeek] || []).push(s);
+  });
+  const recordsByKey = {};
+  (records || []).filter(r => codes.includes(r.unitCode)).forEach(r => { recordsByKey[`${r.date}|${r.unitCode}`] = r.status; });
 
-  const allWeeks = buildWeeks(SEMESTER_START, SEMESTER_END).filter(w => w.start <= today);
+  const semester = (unitSessions[0] && unitSessions[0].semester) || DEFAULT_SEMESTER;
+  const range = SEMESTERS[semester] || SEMESTERS[DEFAULT_SEMESTER];
+  const allWeeks = buildWeeks(range.start, range.end).filter(w => w.start <= today);
 
   let runningPresent = 0;
   let runningClassDays = 0;
@@ -35,13 +42,20 @@ export default function WeeklyAttendanceTable({ unitCode, sessions, records }) {
     let weekClassDays = 0;
     const dayCells = WEEKDAYS.map((wd, idx) => {
       const dateStr = addDays(week.start, idx);
-      if (!classWeekdays.has(wd)) return { label: "NC", dateStr };
-      if (dateStr > today) return { label: "-", dateStr };
-      const status = recordsByDate[dateStr];
-      if (!status) return { label: "-", dateStr };
-      weekClassDays += 1;
-      if (status === "Present") weekPresent += 1;
-      return { label: status, dateStr };
+      const daySessions = sessionsByWeekday[wd] || [];
+      if (daySessions.length === 0) return { dateStr, entries: [{ unitCode: null, label: "NC" }] };
+      const entries = daySessions.map(s => {
+        if (dateStr > today) return { unitCode: s.unitCode, label: "-" };
+        const status = recordsByKey[`${dateStr}|${s.unitCode}`];
+        return { unitCode: s.unitCode, label: status || "-" };
+      });
+      entries.forEach(e => {
+        if (e.label === "Present" || e.label === "Absent") {
+          weekClassDays += 1;
+          if (e.label === "Present") weekPresent += 1;
+        }
+      });
+      return { dateStr, entries };
     });
     runningClassDays += weekClassDays;
     runningPresent += weekPresent;
@@ -54,7 +68,7 @@ export default function WeeklyAttendanceTable({ unitCode, sessions, records }) {
   const tdStyle = (shaded) => ({ background: shaded ? "#f5f7fa" : "white", color: "#111", padding: "9px 12px", fontSize: 12.5, textAlign: "center", border: "1px solid #dde3ea" });
 
   if (unitSessions.length === 0) {
-    return <div style={{ fontSize: 13, color: "#888" }}>No timetable has been set up for this unit yet, so attendance cannot be calculated.</div>;
+    return <div style={{ fontSize: 13, color: "#888" }}>No timetable has been set up for {codes.length > 1 ? "these units" : "this unit"} yet, so attendance cannot be calculated.</div>;
   }
 
   return (
@@ -77,7 +91,14 @@ export default function WeeklyAttendanceTable({ unitCode, sessions, records }) {
               <td style={{ ...tdStyle(i % 2 === 1), textAlign: "left", fontWeight: "bold" }}>{formatWeekRange(row.week)}</td>
               {row.dayCells.map(cell => (
                 <td key={cell.dateStr} style={tdStyle(i % 2 === 1)}>
-                  <StatusBadge label={cell.label} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
+                    {cell.entries.map((e, ei) => (
+                      <div key={e.unitCode || `nc-${ei}`}>
+                        {showUnitTags && e.unitCode && <div style={{ fontSize: 9, color: "#999", marginBottom: 1 }}>{e.unitCode}</div>}
+                        <StatusBadge label={e.label} />
+                      </div>
+                    ))}
+                  </div>
                 </td>
               ))}
               <td style={{ ...tdStyle(i % 2 === 1), fontWeight: "bold" }}>{row.weeklyPct === null ? "—" : `${row.weeklyPct}%`}</td>

@@ -1,14 +1,6 @@
-import { WEEKDAYS, SEMESTER_START, SEMESTER_END, buildWeeks, addDays, formatWeekRange, todayStr, termLabel } from "./scheduleUtils";
+import { WEEKDAYS, SEMESTERS, TEACHING_WEEKS, ALL_UNITS, buildWeeks, addDays, formatWeekRange, todayStr } from "./scheduleUtils";
 
-function timeToMinutes(t) {
-  const [h, m] = (t || "0:0").split(":").map(Number);
-  return h * 60 + m;
-}
-
-function sessionHours(session) {
-  const mins = timeToMinutes(session.endTime) - timeToMinutes(session.startTime);
-  return mins > 0 ? mins / 60 : 0;
-}
+const HOURS_PER_CLASS = 3;
 
 function fmtHours(n) {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
@@ -18,37 +10,40 @@ function fmtPct(n) {
   return n === null ? "—" : `${n}%`;
 }
 
-export function computeAttendanceReport(unitCode, semester, sessions, records) {
+export function computeAttendanceReport(unitCodes, semester, sessions, records) {
+  const codes = Array.isArray(unitCodes) ? unitCodes : [unitCodes];
   const today = todayStr();
-  const unitSessions = (sessions || []).filter(s => s.unitCode === unitCode && s.semester === semester);
-  const hoursByWeekday = {};
+  const unitSessions = (sessions || []).filter(s => codes.includes(s.unitCode) && s.semester === semester);
+  const sessionsByWeekday = {};
   unitSessions.forEach(s => {
-    hoursByWeekday[s.dayOfWeek] = (hoursByWeekday[s.dayOfWeek] || 0) + sessionHours(s);
+    (sessionsByWeekday[s.dayOfWeek] = sessionsByWeekday[s.dayOfWeek] || []).push(s);
   });
-  const recordsByDate = {};
-  (records || []).filter(r => r.unitCode === unitCode).forEach(r => { recordsByDate[r.date] = r.status; });
+  const recordsByKey = {};
+  (records || []).filter(r => codes.includes(r.unitCode)).forEach(r => { recordsByKey[`${r.date}|${r.unitCode}`] = r.status; });
 
-  const allWeeks = buildWeeks(SEMESTER_START, SEMESTER_END);
+  const range = SEMESTERS[semester] || SEMESTERS["Semester 2, 2026"];
+  const allWeeks = buildWeeks(range.start, range.end).slice(0, TEACHING_WEEKS);
 
   let cumAttended = 0;
   let cumClassHours = 0;
   let remainingScheduled = 0;
 
-  const weeks = allWeeks.map((week, idx) => {
+  const weeks = allWeeks.map(week => {
     let weekAttended = 0;
     let weekClassHours = 0;
     const dayCells = WEEKDAYS.map((wd, di) => {
       const dateStr = addDays(week.start, di);
-      const scheduled = hoursByWeekday[wd] || 0;
-      if (scheduled <= 0) return { label: "NC", dateStr };
+      const daySessions = sessionsByWeekday[wd] || [];
+      if (daySessions.length === 0) return { label: "NC", dateStr };
+      const scheduled = daySessions.length * HOURS_PER_CLASS;
       weekClassHours += scheduled;
       if (dateStr > today) {
         remainingScheduled += scheduled;
         return { label: "-", dateStr };
       }
-      const status = recordsByDate[dateStr];
-      if (!status) return { label: "-", dateStr };
-      const attendedHours = status === "Present" ? scheduled : 0;
+      const anyRecorded = daySessions.some(s => recordsByKey[`${dateStr}|${s.unitCode}`]);
+      if (!anyRecorded) return { label: "-", dateStr };
+      const attendedHours = daySessions.reduce((sum, s) => sum + (recordsByKey[`${dateStr}|${s.unitCode}`] === "Present" ? HOURS_PER_CLASS : 0), 0);
       weekAttended += attendedHours;
       cumAttended += attendedHours;
       cumClassHours += scheduled;
@@ -57,7 +52,6 @@ export function computeAttendanceReport(unitCode, semester, sessions, records) {
 
     return {
       week,
-      term: termLabel(idx),
       dayCells,
       studyHrs: weekAttended,
       weeklyClassHrs: weekClassHours,
@@ -77,18 +71,16 @@ export function computeAttendanceReport(unitCode, semester, sessions, records) {
     projAttdPct: semesterProjPct
   }));
 
-  const terms = Array.from(new Set(weeks.map(w => w.term)));
-
-  return { rows, terms };
+  return { rows };
 }
 
-export default function AttendanceReport({ unitCode, semester, term, sessions, records }) {
+export default function AttendanceReport({ unitCode, enrolledUnitCodes, semester, sessions, records }) {
   if (!unitCode) {
     return <div style={{ fontSize: 13, color: "#888" }}>Select a unit to view its attendance report.</div>;
   }
 
-  const { rows: allRows } = computeAttendanceReport(unitCode, semester, sessions, records);
-  const rows = allRows.filter(r => r.term === term);
+  const codes = unitCode === ALL_UNITS ? (enrolledUnitCodes || []) : [unitCode];
+  const { rows } = computeAttendanceReport(codes, semester, sessions, records);
 
   const headerStyle = { background: "#eceef1", color: "#1a1d24", fontWeight: "bold", padding: "9px 10px", fontSize: 11.5, textAlign: "center", border: "1px solid #d3d7dd", whiteSpace: "nowrap" };
   const cellStyle = (shaded) => ({ background: shaded ? "#f7f8fa" : "white", color: "#222", padding: "8px 10px", fontSize: 12, textAlign: "center", border: "1px solid #e2e5ea", whiteSpace: "nowrap" });
@@ -99,7 +91,6 @@ export default function AttendanceReport({ unitCode, semester, term, sessions, r
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1400 }}>
           <thead>
             <tr>
-              <th style={headerStyle}>Term</th>
               <th style={headerStyle}>Week Length</th>
               {WEEKDAYS.map(wd => <th key={wd} style={headerStyle}>{wd}</th>)}
               <th style={headerStyle}>Study Hrs</th>
@@ -113,11 +104,10 @@ export default function AttendanceReport({ unitCode, semester, term, sessions, r
           </thead>
           <tbody>
             {rows.length === 0 && (
-              <tr><td colSpan={17} style={cellStyle(false)}>No weeks in this term.</td></tr>
+              <tr><td colSpan={16} style={cellStyle(false)}>No weeks in this semester.</td></tr>
             )}
             {rows.map((row, i) => (
               <tr key={row.week.start}>
-                <td style={cellStyle(i % 2 === 1)}>{row.term}</td>
                 <td style={{ ...cellStyle(i % 2 === 1), textAlign: "left", fontWeight: "bold" }}>{formatWeekRange(row.week)}</td>
                 {row.dayCells.map(cell => (
                   <td key={cell.dateStr} style={cellStyle(i % 2 === 1)}>{cell.label}</td>

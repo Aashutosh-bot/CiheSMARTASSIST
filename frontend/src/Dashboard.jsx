@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Footer from "./Footer";
 import AttendanceReport from "./AttendanceReport";
-import { WEEKDAYS, SEMESTER_START, SEMESTER_END, buildWeeks, addDays, formatWeekRange, formatDMY, todayStr, termLabel, weekdayIndex } from "./scheduleUtils";
+import { WEEKDAYS, SEMESTERS, SEMESTER_OPTIONS, ALL_UNITS, buildWeeks, addDays, formatWeekRange, formatDMY, todayStr, weekdayIndex } from "./scheduleUtils";
 
 const NAVY = "#0f2a52";
 const NAVY_LIGHT = "#1c3f6e";
@@ -50,7 +50,6 @@ function Dashboard() {
   const [selectedWeekStart, setSelectedWeekStart] = useState("");
   const [attendanceUnitCode, setAttendanceUnitCode] = useState("");
   const [attendanceSemester, setAttendanceSemester] = useState("");
-  const [attendanceTerm, setAttendanceTerm] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const navigate = useNavigate();
@@ -133,19 +132,13 @@ function Dashboard() {
 
   const todayFormatted = new Date().toLocaleDateString("en-AU", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-  const semesters = Array.from(new Set(allUnits.map(u => u.semester).filter(Boolean)));
-  const activeSemester = selectedSemester || semesters[0] || "Semester 2, 2026";
-  const weekOptions = buildWeeks(SEMESTER_START, SEMESTER_END);
+  const activeSemester = selectedSemester || SEMESTER_OPTIONS[1];
+  const weekOptions = buildWeeks(SEMESTERS[activeSemester].start, SEMESTERS[activeSemester].end);
   const activeWeek = weekOptions.find(w => w.start === selectedWeekStart) || weekOptions[0];
 
   const activeAttendanceUnit = attendanceUnitCode || myUnitCodes[0] || "";
-  const activeAttendanceSemester = attendanceSemester || semesters[0] || "Semester 2, 2026";
-  const attendanceTerms = weekOptions.map((w, i) => termLabel(i));
-  const uniqueAttendanceTerms = Array.from(new Set(attendanceTerms));
+  const activeAttendanceSemester = attendanceSemester || SEMESTER_OPTIONS[1];
   const today = todayStr();
-  const currentWeekIdx = weekOptions.findIndex(w => today >= w.start && today <= w.end);
-  const defaultAttendanceTerm = termLabel(currentWeekIdx >= 0 ? currentWeekIdx : 0);
-  const activeAttendanceTerm = attendanceTerm || defaultAttendanceTerm;
 
   function unitLabel(code) {
     const u = allUnits.find(x => x.code === code);
@@ -160,7 +153,7 @@ function Dashboard() {
           <div>
             <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 4 }}>Semester</label>
             <select value={activeSemester} onChange={e => setSelectedSemester(e.target.value)} style={{ padding: 9, border: "1px solid #ccc", borderRadius: 6, fontSize: 13 }}>
-              {(semesters.length ? semesters : [activeSemester]).map(s => <option key={s} value={s}>{s}</option>)}
+              {SEMESTER_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div>
@@ -210,7 +203,7 @@ function Dashboard() {
   let upcomingClassesCount = 0;
   for (let i = 0; i < 7; i++) {
     const dateStr = addDays(today, i);
-    if (dateStr > SEMESTER_END) break;
+    if (dateStr > SEMESTERS[SEMESTER_OPTIONS[1]].end) break;
     const wd = WEEKDAYS[weekdayIndex(dateStr)];
     upcomingClassesCount += timetableSessions.filter(t => myUnitCodes.includes(t.unitCode) && t.dayOfWeek === wd).length;
   }
@@ -601,27 +594,22 @@ function Dashboard() {
                       <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 4 }}>Course/Unit</label>
                       <select value={activeAttendanceUnit} onChange={e => setAttendanceUnitCode(e.target.value)} style={{ padding: 9, border: "1px solid #ccc", borderRadius: 6, fontSize: 13 }}>
                         {myUnitCodes.length === 0 && <option value="">No enrolled units</option>}
+                        {myUnitCodes.length > 0 && <option value={ALL_UNITS}>All Units (Whole Semester)</option>}
                         {myUnitCodes.map(code => <option key={code} value={code}>{unitLabel(code)}</option>)}
                       </select>
                     </div>
                     <div>
                       <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 4 }}>Semester</label>
                       <select value={activeAttendanceSemester} onChange={e => setAttendanceSemester(e.target.value)} style={{ padding: 9, border: "1px solid #ccc", borderRadius: 6, fontSize: 13 }}>
-                        {(semesters.length ? semesters : [activeAttendanceSemester]).map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 4 }}>Term</label>
-                      <select value={activeAttendanceTerm} onChange={e => setAttendanceTerm(e.target.value)} style={{ padding: 9, border: "1px solid #ccc", borderRadius: 6, fontSize: 13 }}>
-                        {uniqueAttendanceTerms.map(t => <option key={t} value={t}>{t}</option>)}
+                        {SEMESTER_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </div>
                   </div>
 
                   <AttendanceReport
                     unitCode={activeAttendanceUnit}
+                    enrolledUnitCodes={myUnitCodes}
                     semester={activeAttendanceSemester}
-                    term={activeAttendanceTerm}
                     sessions={timetableSessions}
                     records={(myAttendance && myAttendance.records) || []}
                   />
