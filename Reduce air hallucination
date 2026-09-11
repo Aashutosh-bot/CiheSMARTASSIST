@@ -1,0 +1,90 @@
+Hallucination Reduction
+
+Overview
+
+AI hallucination is a situation where an AI model generates information that is incorrect, misleading, or not supported by reliable sources. For an educational assistant such as CIHE SmartAssist, reducing hallucinations is important because students may depend on the system for academic policies, assessment requirements, attendance information, and other important information.
+
+How CIHE SmartAssist Reduces Hallucination
+
+CIHE SmartAssist uses a Retrieval-Augmented Generation (RAG) approach to reduce the likelihood of hallucinated responses.
+
+Instead of allowing the language model to answer a question using only its general knowledge, SmartAssist first searches the available CIHE knowledge sources, including institutional documents and Moodle content.
+
+The process can be represented as:
+
+Student Question
+       ↓
+Retrieve Relevant CIHE/Moodle Information
+       ↓
+Check Retrieved Information
+       ↓
+Provide Relevant Context to AI Model
+       ↓
+Generate Grounded Response
+       ↓
+Return Answer to Student
+
+If sufficient information cannot be retrieved, the system should avoid guessing and instead provide a fallback response directing the student to an appropriate CIHE support service.
+
+Example
+
+For example, if a student asks:
+
+“What is the attendance requirement for my course?”
+
+SmartAssist searches the available CIHE and Moodle resources for information about attendance requirements.
+
+If the relevant policy is found, the system uses that information to generate the response.
+
+If the information cannot be found, SmartAssist should not invent an attendance requirement. Instead, it can respond:
+
+“I couldn’t find sufficient information about this in the available CIHE resources. Please contact Student Services for confirmation.”
+
+This is safer than providing an answer that may be incorrect.
+
+Techniques for Reducing Hallucination
+
+1. Source-Grounded Responses
+
+Responses should be generated using information retrieved from authorised CIHE resources rather than relying only on the language model’s general knowledge.
+
+2. Retrieval Relevance
+
+The system should consider whether the retrieved information is relevant to the student’s question. Irrelevant or low-quality retrieved information should not be used as the basis for an answer.
+
+3. Fallback Mechanism
+
+When sufficient information cannot be retrieved, the system should acknowledge that the information is unavailable rather than generating an unsupported answer.
+
+4. Source References
+
+Where possible, SmartAssist can provide the source used to answer a question. This allows students to verify the information themselves.
+
+5. Controlled Prompting
+
+The language model can be instructed to use the retrieved context when answering questions and avoid creating information that is not supported by that context.
+
+6. Evaluation and Testing
+
+The system can be tested using a predefined set of student questions. Each response can be compared against the relevant CIHE or Moodle source to determine whether the generated answer is accurate and properly supported.
+
+Importance to CIHE SmartAssist
+
+Hallucination reduction improves the reliability and trustworthiness of CIHE SmartAssist. Since the system is designed to support students, it is more important for the assistant to provide a correct source-based response or clearly state that information is unavailable than to provide an answer that sounds confident but may be incorrect.
+
+The combination of Moodle integration, document retrieval, relevance checking, controlled generation, and fallback responses can therefore help make CIHE SmartAssist a safer and more reliable student-support system.
+
+Future Improvements
+
+Future versions of SmartAssist could improve hallucination reduction by implementing:
+
+* Automatic retrieval confidence scoring
+* Better document and Moodle chunking strategies
+* Source citations in every response
+* Answer verification against retrieved sources
+* Improved prompt-injection protection
+* Automated evaluation datasets
+* Human review for high-risk academic questions
+* Regular synchronisation of updated Moodle content
+
+The overall goal is to ensure that SmartAssist provides evidence-based answers rather than unsupported AI-generated information.
