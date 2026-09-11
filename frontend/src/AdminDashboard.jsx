@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import WeeklyAttendanceTable from "./WeeklyAttendanceTable";
-import { WEEKDAYS } from "./scheduleUtils";
+import { WEEKDAYS, SEMESTER_OPTIONS, DEFAULT_SEMESTER, SEMESTERS, TEACHING_WEEKS, ALL_UNITS, buildWeeks, addDays, formatDMY, todayStr } from "./scheduleUtils";
 
 const SESSION_MODES = ["Lecture", "Workshop", "Lab", "Tutorial", "Seminar"];
 
@@ -12,13 +12,13 @@ function AdminDashboard() {
   const [assessments, setAssessments] = useState([]);
   const [timetableSessions, setTimetableSessions] = useState([]);
   const [activeTab, setActiveTab] = useState("units");
-  const [newUnit, setNewUnit] = useState({ code: "", name: "", semester: "Semester 2, 2026", totalSeats: "" });
+  const [newUnit, setNewUnit] = useState({ code: "", name: "", semester: DEFAULT_SEMESTER, totalSeats: "" });
   const [newStudent, setNewStudent] = useState({ name: "", email: "", studentId: "", joiningDate: "", unitCodes: [] });
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({ name: "", email: "", studentId: "", joiningDate: "", unitCodes: [] });
   const [newAttendance, setNewAttendance] = useState({ studentId: "", unitCode: "", date: "", status: "Present" });
   const [newAssessment, setNewAssessment] = useState({ unitCode: "", title: "", dueDate: "", weight: "", description: "" });
-  const [newSession, setNewSession] = useState({ unitCode: "", dayOfWeek: "Mon", startTime: "", endTime: "", teacher: "", room: "", mode: "Lecture", location: "", semester: "Semester 2, 2026" });
+  const [newSession, setNewSession] = useState({ unitCode: "", dayOfWeek: "Mon", startTime: "", endTime: "", teacher: "", room: "", mode: "Lecture", location: "", semester: DEFAULT_SEMESTER });
   const [editingSessionId, setEditingSessionId] = useState(null);
   const [editSessionForm, setEditSessionForm] = useState(null);
   const [weeklyStudentId, setWeeklyStudentId] = useState("");
@@ -54,7 +54,7 @@ function AdminDashboard() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newUnit)
     });
-    setNewUnit({ code: "", name: "", semester: "Semester 2, 2026", totalSeats: "" });
+    setNewUnit({ code: "", name: "", semester: DEFAULT_SEMESTER, totalSeats: "" });
     loadData();
   }
 
@@ -144,7 +144,7 @@ function AdminDashboard() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newSession)
     });
-    setNewSession({ unitCode: "", dayOfWeek: "Mon", startTime: "", endTime: "", teacher: "", room: "", mode: "Lecture", location: "", semester: "Semester 2, 2026" });
+    setNewSession({ unitCode: "", dayOfWeek: "Mon", startTime: "", endTime: "", teacher: "", room: "", mode: "Lecture", location: "", semester: DEFAULT_SEMESTER });
     loadData();
   }
 
@@ -173,6 +173,8 @@ function AdminDashboard() {
   const inputStyle = { padding: 9, border: "1px solid #ccc", borderRadius: 6, fontSize: 13, marginRight: 8, marginBottom: 8 };
   const thStyle = { background: "#0f2a52", color: "white", padding: "10px 14px", textAlign: "left", fontSize: 12 };
   const tdStyle = { padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #f0f0f0" };
+  const actionsThStyle = { ...thStyle, position: "sticky", right: 0 };
+  const actionsTdStyle = { ...tdStyle, position: "sticky", right: 0, background: "white" };
 
   function studentName(id) {
     const s = students.find(s => s.id === id);
@@ -182,6 +184,28 @@ function AdminDashboard() {
   const selectedAttendanceStudent = students.find(s => s.id === Number(newAttendance.studentId));
   const weeklyStudent = students.find(s => s.id === Number(weeklyStudentId));
   const unitsWithSessions = new Set(timetableSessions.map(t => t.unitCode));
+
+  function classDatesForUnit(unitCode) {
+    const unitSessions = timetableSessions.filter(t => t.unitCode === unitCode);
+    if (unitSessions.length === 0) return [];
+    const classWeekdays = new Set(unitSessions.map(t => t.dayOfWeek));
+    const semester = unitSessions[0].semester || DEFAULT_SEMESTER;
+    const range = SEMESTERS[semester] || SEMESTERS[DEFAULT_SEMESTER];
+    const today = todayStr();
+    const weeks = buildWeeks(range.start, range.end).slice(0, TEACHING_WEEKS);
+    const dates = [];
+    weeks.forEach(week => {
+      WEEKDAYS.forEach((wd, idx) => {
+        if (!classWeekdays.has(wd)) return;
+        const dateStr = addDays(week.start, idx);
+        if (dateStr > today) return;
+        dates.push({ date: dateStr, weekday: wd });
+      });
+    });
+    return dates;
+  }
+
+  const attendanceClassDates = classDatesForUnit(newAttendance.unitCode);
   const noTimetableBadgeStyle = { marginLeft: 8, fontSize: 10, fontWeight: "bold", color: "#a15c00", background: "#fff3cd", padding: "2px 8px", borderRadius: 10, border: "1px solid #ffe69c", whiteSpace: "nowrap" };
 
   function unitsWithoutTimetable(codes) {
@@ -235,6 +259,9 @@ function AdminDashboard() {
               <div style={{ fontSize: 13, fontWeight: "bold", marginBottom: 10, color: "#555" }}>Add New Unit</div>
               <input placeholder="Code (e.g. ICT308)" value={newUnit.code} onChange={e => setNewUnit({ ...newUnit, code: e.target.value })} style={inputStyle} />
               <input placeholder="Unit Name" value={newUnit.name} onChange={e => setNewUnit({ ...newUnit, name: e.target.value })} style={{ ...inputStyle, width: 220 }} />
+              <select value={newUnit.semester} onChange={e => setNewUnit({ ...newUnit, semester: e.target.value })} style={inputStyle}>
+                {SEMESTER_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
               <input placeholder="Total Seats" type="number" value={newUnit.totalSeats} onChange={e => setNewUnit({ ...newUnit, totalSeats: e.target.value })} style={{ ...inputStyle, width: 100 }} />
               <button onClick={addUnit} style={{ padding: "9px 18px", background: "#0f2a52", color: "white", border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
                 Add Unit
@@ -242,6 +269,7 @@ function AdminDashboard() {
             </div>
 
             <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+              <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
@@ -249,7 +277,7 @@ function AdminDashboard() {
                     <th style={thStyle}>Name</th>
                     <th style={thStyle}>Semester</th>
                     <th style={thStyle}>Enrolled / Seats</th>
-                    <th style={thStyle}></th>
+                    <th style={actionsThStyle}></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -262,13 +290,14 @@ function AdminDashboard() {
                       </td>
                       <td style={tdStyle}>{u.semester}</td>
                       <td style={tdStyle}>{u.enrolled} / {u.totalSeats}</td>
-                      <td style={tdStyle}>
+                      <td style={actionsTdStyle}>
                         <button onClick={() => deleteUnit(u.code)} style={{ background: "none", border: "none", color: "#dc3545", cursor: "pointer", fontSize: 12 }}>Delete</button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -309,6 +338,7 @@ function AdminDashboard() {
             </div>
 
             <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+              <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
@@ -318,7 +348,7 @@ function AdminDashboard() {
                     <th style={thStyle}>Units</th>
                     <th style={thStyle}>Joined</th>
                     <th style={thStyle}>Password Set?</th>
-                    <th style={thStyle}></th>
+                    <th style={actionsThStyle}></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -353,7 +383,7 @@ function AdminDashboard() {
                           <input type="date" value={editForm.joiningDate} onChange={e => setEditForm({ ...editForm, joiningDate: e.target.value })} style={{ ...inputStyle, margin: 0, width: 130 }} />
                         </td>
                         <td style={tdStyle}>—</td>
-                        <td style={tdStyle}>
+                        <td style={actionsTdStyle}>
                           <button onClick={() => saveEdit(s.id)} style={{ background: "#0f2a52", color: "white", border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer", marginRight: 6 }}>Save</button>
                           <button onClick={() => setEditingId(null)} style={{ background: "none", border: "1px solid #ccc", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>Cancel</button>
                         </td>
@@ -366,7 +396,7 @@ function AdminDashboard() {
                         <td style={tdStyle}>{(s.unitCodes && s.unitCodes.length) ? s.unitCodes.join(", ") : "—"}</td>
                         <td style={tdStyle}>{s.joiningDate || "—"}</td>
                         <td style={tdStyle}>{s.password ? "✅ Yes" : "⏳ Not yet"}</td>
-                        <td style={tdStyle}>
+                        <td style={actionsTdStyle}>
                           <button onClick={() => startEdit(s)} style={{ background: "none", border: "none", color: "#0f2a52", cursor: "pointer", fontSize: 12, marginRight: 12 }}>Edit</button>
                           <button onClick={() => deleteStudent(s.id)} style={{ background: "none", border: "none", color: "#dc3545", cursor: "pointer", fontSize: 12 }}>Delete</button>
                         </td>
@@ -375,6 +405,7 @@ function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -389,7 +420,7 @@ function AdminDashboard() {
                 value={newAttendance.studentId}
                 onChange={e => {
                   const s = students.find(st => st.id === Number(e.target.value));
-                  setNewAttendance({ ...newAttendance, studentId: e.target.value, unitCode: (s && s.unitCodes && s.unitCodes[0]) || "" });
+                  setNewAttendance({ ...newAttendance, studentId: e.target.value, unitCode: (s && s.unitCodes && s.unitCodes[0]) || "", date: "" });
                 }}
                 style={inputStyle}
               >
@@ -397,11 +428,19 @@ function AdminDashboard() {
                 {students.map(s => <option key={s.id} value={s.id}>{s.name} ({(s.unitCodes && s.unitCodes.length) ? s.unitCodes.join(", ") : "no unit"})</option>)}
               </select>
               {selectedAttendanceStudent && selectedAttendanceStudent.unitCodes && selectedAttendanceStudent.unitCodes.length > 0 && (
-                <select value={newAttendance.unitCode} onChange={e => setNewAttendance({ ...newAttendance, unitCode: e.target.value })} style={inputStyle}>
+                <select value={newAttendance.unitCode} onChange={e => setNewAttendance({ ...newAttendance, unitCode: e.target.value, date: "" })} style={inputStyle}>
                   {selectedAttendanceStudent.unitCodes.map(code => <option key={code} value={code}>{code}</option>)}
                 </select>
               )}
-              <input type="date" value={newAttendance.date} onChange={e => setNewAttendance({ ...newAttendance, date: e.target.value })} style={inputStyle} />
+              <select
+                value={newAttendance.date}
+                onChange={e => setNewAttendance({ ...newAttendance, date: e.target.value })}
+                disabled={attendanceClassDates.length === 0}
+                style={inputStyle}
+              >
+                <option value="">{attendanceClassDates.length === 0 ? "No class dates yet" : "Select class date"}</option>
+                {attendanceClassDates.map(d => <option key={d.date} value={d.date}>{formatDMY(d.date)} ({d.weekday})</option>)}
+              </select>
               <select value={newAttendance.status} onChange={e => setNewAttendance({ ...newAttendance, status: e.target.value })} style={inputStyle}>
                 <option value="Present">Present</option>
                 <option value="Absent">Absent</option>
@@ -412,6 +451,7 @@ function AdminDashboard() {
             </div>
 
             <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+              <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
@@ -419,7 +459,7 @@ function AdminDashboard() {
                     <th style={thStyle}>Unit</th>
                     <th style={thStyle}>Date</th>
                     <th style={thStyle}>Status</th>
-                    <th style={thStyle}></th>
+                    <th style={actionsThStyle}></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -436,13 +476,14 @@ function AdminDashboard() {
                           {a.status}
                         </span>
                       </td>
-                      <td style={tdStyle}>
+                      <td style={actionsTdStyle}>
                         <button onClick={() => deleteAttendance(a.id)} style={{ background: "none", border: "none", color: "#dc3545", cursor: "pointer", fontSize: 12 }}>Delete</button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
 
             <div style={{ fontSize: 16, fontWeight: "bold", color: "#0f2a52", margin: "26px 0 12px" }}>Weekly Attendance Summary</div>
@@ -461,12 +502,17 @@ function AdminDashboard() {
               </select>
               {weeklyStudent && weeklyStudent.unitCodes && weeklyStudent.unitCodes.length > 0 && (
                 <select value={weeklyUnitCode} onChange={e => setWeeklyUnitCode(e.target.value)} style={inputStyle}>
+                  <option value={ALL_UNITS}>All Units (Whole Semester)</option>
                   {weeklyStudent.unitCodes.map(code => <option key={code} value={code}>{code}</option>)}
                 </select>
               )}
               {weeklyStudent && weeklyUnitCode ? (
                 <div style={{ marginTop: 14 }}>
-                  <WeeklyAttendanceTable unitCode={weeklyUnitCode} sessions={timetableSessions} records={attendance.filter(a => a.studentId === weeklyStudent.id)} />
+                  <WeeklyAttendanceTable
+                    unitCodes={weeklyUnitCode === ALL_UNITS ? weeklyStudent.unitCodes : [weeklyUnitCode]}
+                    sessions={timetableSessions}
+                    records={attendance.filter(a => a.studentId === weeklyStudent.id)}
+                  />
                 </div>
               ) : (
                 <div style={{ fontSize: 13, color: "#888", marginTop: 10 }}>Select a student and unit to view their weekly attendance.</div>
@@ -500,6 +546,7 @@ function AdminDashboard() {
             </div>
 
             <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+              <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
@@ -507,7 +554,7 @@ function AdminDashboard() {
                     <th style={thStyle}>Title</th>
                     <th style={thStyle}>Due Date</th>
                     <th style={thStyle}>Weight</th>
-                    <th style={thStyle}></th>
+                    <th style={actionsThStyle}></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -520,13 +567,14 @@ function AdminDashboard() {
                       <td style={tdStyle}>{a.title}</td>
                       <td style={tdStyle}>{a.dueDate}</td>
                       <td style={tdStyle}>{a.weight}%</td>
-                      <td style={tdStyle}>
+                      <td style={actionsTdStyle}>
                         <button onClick={() => deleteAssessment(a.id)} style={{ background: "none", border: "none", color: "#dc3545", cursor: "pointer", fontSize: 12 }}>Delete</button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -553,7 +601,9 @@ function AdminDashboard() {
               <input placeholder="Teacher Name" value={newSession.teacher} onChange={e => setNewSession({ ...newSession, teacher: e.target.value })} style={{ ...inputStyle, width: 160 }} />
               <input placeholder="Room" value={newSession.room} onChange={e => setNewSession({ ...newSession, room: e.target.value })} style={{ ...inputStyle, width: 110 }} />
               <input placeholder="Location / Address" value={newSession.location} onChange={e => setNewSession({ ...newSession, location: e.target.value })} style={{ ...inputStyle, width: 220 }} />
-              <input placeholder="Semester" value={newSession.semester} onChange={e => setNewSession({ ...newSession, semester: e.target.value })} style={{ ...inputStyle, width: 150 }} />
+              <select value={newSession.semester} onChange={e => setNewSession({ ...newSession, semester: e.target.value })} style={inputStyle}>
+                {SEMESTER_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
               <br />
               <button onClick={addSession} style={{ padding: "9px 18px", background: "#0f2a52", color: "white", border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
                 Add Session
@@ -561,6 +611,7 @@ function AdminDashboard() {
             </div>
 
             <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+              <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
@@ -572,7 +623,7 @@ function AdminDashboard() {
                     <th style={thStyle}>Mode</th>
                     <th style={thStyle}>Location</th>
                     <th style={thStyle}>Semester</th>
-                    <th style={thStyle}></th>
+                    <th style={actionsThStyle}></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -611,9 +662,11 @@ function AdminDashboard() {
                           <input value={editSessionForm.location} onChange={e => setEditSessionForm({ ...editSessionForm, location: e.target.value })} style={{ ...inputStyle, margin: 0, width: 130 }} />
                         </td>
                         <td style={tdStyle}>
-                          <input value={editSessionForm.semester} onChange={e => setEditSessionForm({ ...editSessionForm, semester: e.target.value })} style={{ ...inputStyle, margin: 0, width: 110 }} />
+                          <select value={editSessionForm.semester} onChange={e => setEditSessionForm({ ...editSessionForm, semester: e.target.value })} style={{ ...inputStyle, margin: 0 }}>
+                            {SEMESTER_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
                         </td>
-                        <td style={tdStyle}>
+                        <td style={actionsTdStyle}>
                           <button onClick={() => saveEditSession(t.id)} style={{ background: "#0f2a52", color: "white", border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer", marginRight: 6 }}>Save</button>
                           <button onClick={() => { setEditingSessionId(null); setEditSessionForm(null); }} style={{ background: "none", border: "1px solid #ccc", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>Cancel</button>
                         </td>
@@ -628,7 +681,7 @@ function AdminDashboard() {
                         <td style={tdStyle}>{t.mode || "—"}</td>
                         <td style={tdStyle}>{t.location || "—"}</td>
                         <td style={tdStyle}>{t.semester}</td>
-                        <td style={tdStyle}>
+                        <td style={actionsTdStyle}>
                           <button onClick={() => startEditSession(t)} style={{ background: "none", border: "none", color: "#0f2a52", cursor: "pointer", fontSize: 12, marginRight: 12 }}>Edit</button>
                           <button onClick={() => deleteSession(t.id)} style={{ background: "none", border: "none", color: "#dc3545", cursor: "pointer", fontSize: 12 }}>Delete</button>
                         </td>
@@ -637,6 +690,7 @@ function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
