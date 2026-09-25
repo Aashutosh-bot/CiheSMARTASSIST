@@ -13,10 +13,11 @@ function Chatbot() {
     setMessages(prev => [...prev, { role: "user", text: textToSend }]);
     setInput("");
     try {
+      const email = localStorage.getItem("studentEmail") || "";
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: textToSend })
+        body: JSON.stringify({ message: textToSend, email })
       });
       const data = await res.json();
       setMessages(prev => [...prev, { role: "bot", text: data.text, sources: data.sources }]);

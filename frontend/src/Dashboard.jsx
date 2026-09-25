@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Footer from "./Footer";
 import AttendanceReport from "./AttendanceReport";
+import AcademicCalendar from "./AcademicCalendar";
 import { WEEKDAYS, SEMESTERS, SEMESTER_OPTIONS, ALL_UNITS, buildWeeks, addDays, formatWeekRange, formatDMY, todayStr, weekdayIndex } from "./scheduleUtils";
 
 const NAVY = "#0f2a52";
@@ -14,7 +15,9 @@ const sidebarNavItems = [
   { id: "courses", label: "My Courses", icon: "📚" },
   { id: "assessments", label: "Assessments", icon: "📝" },
   { id: "timetable", label: "Timetable", icon: "📅" },
-  { id: "attendance", label: "Attendance", icon: "✅" }
+  { id: "calendar", label: "Academic Calendar", icon: "🗓️" },
+  { id: "attendance", label: "Attendance", icon: "✅" },
+  { id: "history", label: "My History", icon: "📜" }
 ];
 
 function IconBox({ bg, size = 48, fontSize = 22, children }) {
@@ -44,6 +47,7 @@ function Dashboard() {
   const [unitAssessments, setUnitAssessments] = useState([]);
   const [allAssessments, setAllAssessments] = useState([]);
   const [myProfile, setMyProfile] = useState(null);
+  const [chatHistory, setChatHistory] = useState([]);
   const [allUnits, setAllUnits] = useState([]);
   const [timetableSessions, setTimetableSessions] = useState([]);
   const [selectedSemester, setSelectedSemester] = useState("");
@@ -69,6 +73,7 @@ function Dashboard() {
       fetch(`/api/notifications?email=${encodeURIComponent(studentEmail)}`).then(r => r.json()).then(setNotifications).catch(() => {});
       fetch(`/api/attendance/student/${encodeURIComponent(studentEmail)}`).then(r => r.json()).then(setMyAttendance).catch(() => {});
       fetch(`/api/students/me?email=${encodeURIComponent(studentEmail)}`).then(r => r.json()).then(d => setMyProfile(d.success ? d.student : null)).catch(() => {});
+      fetch(`/api/chat-history/${encodeURIComponent(studentEmail)}`).then(r => r.json()).then(setChatHistory).catch(() => setChatHistory([]));
     }
   }, [navigate]);
 
@@ -122,6 +127,8 @@ function Dashboard() {
       color: (unitDecoration[u.code] && unitDecoration[u.code].color) || decorationPalette[i % decorationPalette.length],
       schedule: (unitDecoration[u.code] && unitDecoration[u.code].schedule) || "Schedule TBA"
     }));
+
+  const myAssessments = allAssessments.filter(a => myUnitCodes.includes(a.unitCode));
 
   const searchResults = searchQuery.trim()
     ? courses.filter(c =>
@@ -585,6 +592,13 @@ function Dashboard() {
               </div>
             )}
 
+            {activeTab === "calendar" && (
+              <div>
+                <div style={{ fontSize: 22, fontWeight: "bold", color: NAVY, marginBottom: 20 }}>Academic Calendar</div>
+                <AcademicCalendar assessments={myAssessments} />
+              </div>
+            )}
+
             {activeTab === "attendance" && (
               <div>
                 <div style={{ fontSize: 22, fontWeight: "bold", color: NAVY, marginBottom: 20 }}>Attendance</div>
@@ -613,6 +627,26 @@ function Dashboard() {
                     sessions={timetableSessions}
                     records={(myAttendance && myAttendance.records) || []}
                   />
+                </div>
+              </div>
+            )}
+
+            {activeTab === "history" && (
+              <div>
+                <div style={{ fontSize: 22, fontWeight: "bold", color: NAVY, marginBottom: 20 }}>My History</div>
+                <div style={{ ...cardStyle, padding: 20 }}>
+                  {chatHistory.length === 0 && (
+                    <div style={{ fontSize: 13, color: "#888" }}>No chatbot questions asked yet.</div>
+                  )}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    {chatHistory.map(h => (
+                      <div key={h.id} style={{ paddingBottom: 14, borderBottom: "1px solid #f0f0f0" }}>
+                        <div style={{ fontSize: 13.5, fontWeight: "bold", color: "#222" }}>Q: {h.question}</div>
+                        <div style={{ fontSize: 13, color: "#444", marginTop: 4 }}>A: {h.answer}</div>
+                        <div style={{ fontSize: 11, color: "#aaa", marginTop: 6 }}>{new Date(h.timestamp).toLocaleString()}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

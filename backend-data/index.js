@@ -1,9 +1,29 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
+const Database = require("better-sqlite3");
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// --- Chat history database ---
+const db = new Database(path.join(__dirname, "chatHistory.db"));
+db.exec(`
+  CREATE TABLE IF NOT EXISTS chat_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_email TEXT,
+    question TEXT,
+    answer TEXT,
+    timestamp TEXT
+  )
+`);
+const insertChatHistory = db.prepare(
+  "INSERT INTO chat_history (student_email, question, answer, timestamp) VALUES (?, ?, ?, ?)"
+);
+const selectChatHistoryByEmail = db.prepare(
+  "SELECT * FROM chat_history WHERE student_email = ? ORDER BY timestamp DESC"
+);
 
 // --- Admin account ---
 const ADMIN_EMAIL = "admin@cihe.edu.au";
@@ -313,7 +333,7 @@ app.delete("/api/students/:id", (req, res) => {
 const answers = [
   {
     keys: ["semester", "date", "calendar"],
-    text: "The Semester 2, 2026 academic calendar runs from 24 July to 20 November 2026, with the census date on 17 August 2026 and final exams from 9-20 November 2026.",
+    text: "The CIHE academic year has three study periods: Semester 1 (March to June), Semester 2 (July to October), and Summer Break Classes (November to February), an additional study period offered during the break between semesters for students who want to accelerate their progress or catch up on units. Semester 1, 2026 runs from 2 March to 12 June 2026, with the census date on 27 March 2026 and final exams from 1-12 June 2026. Semester 2, 2026 runs from 24 July to 20 November 2026, with the census date on 17 August 2026 and final exams from 9-20 November 2026. Summer Break Classes run from 23 November 2026 to 20 February 2027, with a shorter, intensive teaching schedule and their own census and exam dates published closer to the period.",
     sources: ["Academic Calendar 2026"]
   },
   {
@@ -365,6 +385,7 @@ function findAnswer(text) {
 
 app.post("/api/chat", (req, res) => {
   const message = req.body.message || "";
+  const email = req.body.email || "";
   const result = findAnswer(message);
   queryLog.unshift({
     question: message,
@@ -372,7 +393,15 @@ app.post("/api/chat", (req, res) => {
     status: result.unmatched ? "Escalated" : "Answered"
   });
   queryLog = queryLog.slice(0, 20);
+  if (email) {
+    insertChatHistory.run(email, message, result.text, new Date().toISOString());
+  }
   res.json(result);
+});
+
+app.get("/api/chat-history/:email", (req, res) => {
+  const rows = selectChatHistoryByEmail.all(req.params.email);
+  res.json(rows);
 });
 
 app.get("/api/dashboard", (req, res) => {

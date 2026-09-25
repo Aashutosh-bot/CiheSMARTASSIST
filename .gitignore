@@ -1,5 +1,5 @@
-frontend/node_modules/
-backend-data/node_modules/
+node_modules/
+backend-data/chatHistory.db
 venv/
 __pycache__/
 *.pyc
