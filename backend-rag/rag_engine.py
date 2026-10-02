@@ -1,7 +1,14 @@
 import os
+import sys
 import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
+
+# moodle_loader.py lives in a sibling folder (../moodle-integration), not here.
+# This line adds that folder to Python's search path so the import below works
+# no matter which directory you run this script from.
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "moodle-integration"))
+from moodle_loader import fetch_moodle_pages
 
 DOCS_FOLDER = "documents"
 CHUNK_SIZE = 100
@@ -42,9 +49,37 @@ def load_and_chunk_all_documents():
     return all_chunks, all_sources
 
 
+def load_and_chunk_moodle_content():
+    """
+    Pull live content from Moodle (via moodle_loader) and chunk it the same
+    way local documents are chunked, so it can be merged into the same index.
+    If Moodle is unreachable or not configured, fetch_moodle_pages() returns
+    an empty list, so this simply contributes nothing — no crash.
+    """
+    all_chunks = []
+    all_sources = []
+
+    moodle_pages = fetch_moodle_pages()  # list of (source_name, text) tuples
+
+    for source_name, text in moodle_pages:
+        chunks = chunk_text(text)
+        for chunk in chunks:
+            all_chunks.append(chunk)
+            all_sources.append(source_name)
+
+    return all_chunks, all_sources
+
+
 def build_index():
-    """Build a FAISS index from all documents. Returns the index plus the chunks/sources for lookup later."""
-    chunks, sources = load_and_chunk_all_documents()
+    """
+    Build a FAISS index from BOTH local documents and live Moodle content.
+    Returns the index plus the chunks/sources for lookup later.
+    """
+    local_chunks, local_sources = load_and_chunk_all_documents()
+    moodle_chunks, moodle_sources = load_and_chunk_moodle_content()
+
+    chunks = local_chunks + moodle_chunks
+    sources = local_sources + moodle_sources
 
     embeddings = model.encode(chunks, normalize_embeddings=True)
     embeddings = np.array(embeddings, dtype="float32")
@@ -53,7 +88,10 @@ def build_index():
     index = faiss.IndexFlatIP(dimension)
     index.add(embeddings)
 
-    print(f"Built index with {len(chunks)} chunks from {len(set(sources))} documents")
+    print(
+        f"Built index with {len(chunks)} chunks "
+        f"({len(local_chunks)} from local documents, {len(moodle_chunks)} from Moodle)"
+    )
     return index, chunks, sources
 
 
