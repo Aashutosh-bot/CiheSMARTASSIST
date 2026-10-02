@@ -1,3 +1,5 @@
+import logo from "./assets/logo.png";
+
 const linkStyle = {
   color: "#cbd5e1",
   fontSize: 13,
@@ -83,21 +85,11 @@ export default function Footer() {
         {/* BRAND */}
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <div
-              style={{
-                width: 46,
-                height: 46,
-                borderRadius: "50%",
-                border: "2px solid #e8a020",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#e8a020",
-                fontSize: 18,
-              }}
-            >
-              👑
-            </div>
+            <img
+              src={logo}
+              alt="Crown Institute logo"
+              style={{ width: 46, height: 46, borderRadius: "50%", objectFit: "cover" }}
+            />
             <div>
               <div style={{ fontSize: 20, fontWeight: "bold", letterSpacing: 1 }}>CIHE</div>
               <div style={{ fontSize: 11, color: "#cbd5e1", lineHeight: 1.3 }}>

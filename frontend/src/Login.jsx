@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Footer from "./Footer";
 import ciheCrest from "./assets/cihe-crest.jpg";
+import logo from "./assets/logo.png";
 
 function Login() {
   const [showModal, setShowModal] = useState(false);
@@ -147,9 +148,7 @@ function Login() {
       <div style={{ background: "white", borderBottom: "1px solid #e0e0e0" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 40px", boxSizing: "border-box", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 46, height: 46, background: "#0f2a52", color: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "bold" }}>
-              CIHE
-            </div>
+            <img src={logo} alt="Crown Institute logo" style={{ width: 46, height: 46, borderRadius: 8, objectFit: "cover" }} />
             <div>
               <div style={{ fontSize: 17, fontWeight: "bold", color: "#0f2a52", lineHeight: 1.1 }}>Crown Institute</div>
               <div style={{ fontSize: 12, color: "#888" }}>of Higher Education</div>

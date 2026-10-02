@@ -4,20 +4,21 @@ import Footer from "./Footer";
 import AttendanceReport from "./AttendanceReport";
 import AcademicCalendar from "./AcademicCalendar";
 import { WEEKDAYS, SEMESTERS, SEMESTER_OPTIONS, ALL_UNITS, buildWeeks, addDays, formatWeekRange, formatDMY, todayStr, weekdayIndex } from "./scheduleUtils";
+import logo from "./assets/logo.png";
 
 const NAVY = "#0f2a52";
 const NAVY_LIGHT = "#1c3f6e";
 const GOLD = "#e8a020";
 
 const sidebarNavItems = [
-  { id: "dashboard", label: "Dashboard", icon: "🏠" },
-  { id: "profile", label: "My Profile", icon: "👤" },
-  { id: "courses", label: "My Courses", icon: "📚" },
-  { id: "assessments", label: "Assessments", icon: "📝" },
-  { id: "timetable", label: "Timetable", icon: "📅" },
-  { id: "calendar", label: "Academic Calendar", icon: "🗓️" },
-  { id: "attendance", label: "Attendance", icon: "✅" },
-  { id: "history", label: "My History", icon: "📜" }
+  { id: "dashboard", label: "Dashboard",},
+  { id: "profile", label: "My Profile",},
+  { id: "courses", label: "My Courses",},
+  { id: "assessments", label: "Assessments",},
+  { id: "timetable", label: "Timetable",},
+  { id: "calendar", label: "Academic Calendar",},
+  { id: "attendance", label: "Attendance",},
+  { id: "history", label: "My History",}
 ];
 
 function IconBox({ bg, size = 48, fontSize = 22, children }) {
@@ -236,12 +237,7 @@ function Dashboard() {
             display: "flex", flexDirection: "column", overflowY: "auto"
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "22px 20px", borderBottom: "1px solid rgba(255,255,255,0.12)" }}>
-              <div style={{
-                width: 42, height: 42, borderRadius: "50%", border: `2px solid ${GOLD}`,
-                display: "flex", alignItems: "center", justifyContent: "center", color: GOLD, fontSize: 18, flexShrink: 0
-              }}>
-                👑
-              </div>
+              <img src={logo} alt="Crown Institute logo" style={{ width: 42, height: 42, borderRadius: "50%", flexShrink: 0, objectFit: "cover" }} />
               <div style={{ fontSize: 12, fontWeight: "bold", letterSpacing: 0.5, lineHeight: 1.35 }}>
                 CROWN INSTITUTE OF HIGHER EDUCATION
               </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import WeeklyAttendanceTable from "./WeeklyAttendanceTable";
 import { WEEKDAYS, SEMESTER_OPTIONS, DEFAULT_SEMESTER, SEMESTERS, TEACHING_WEEKS, ALL_UNITS, buildWeeks, addDays, formatDMY, todayStr } from "./scheduleUtils";
+import logo from "./assets/logo.png";
 
 const SESSION_MODES = ["Lecture", "Workshop", "Lab", "Tutorial", "Seminar"];
 
@@ -217,9 +218,7 @@ function AdminDashboard() {
 
       <div style={{ background: "white", borderBottom: "1px solid #e0e0e0", padding: "16px 30px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 40, height: 40, background: "#0f2a52", color: "white", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: "bold" }}>
-            CIHE
-          </div>
+          <img src={logo} alt="Crown Institute logo" style={{ width: 40, height: 40, borderRadius: 6, objectFit: "cover" }} />
           <span style={{ fontSize: 16, fontWeight: "bold", color: "#0f2a52" }}>Admin Console</span>
         </div>
         <button onClick={logout} style={{ background: "transparent", border: "1px solid #0f2a52", color: "#0f2a52", padding: "8px 18px", borderRadius: 6, fontWeight: "bold", fontSize: 13, cursor: "pointer" }}>
