@@ -1,5 +1,6 @@
 import os
 import requests
+from datetime import datetime, timezone
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
@@ -62,11 +63,11 @@ def fetch_moodle_pages():
     configured, so the rest of the app keeps working regardless.
     """
     if not MOODLE_TOKEN:
-        print("[moodle_loader] No MOODLE_TOKEN set in .env — skipping Moodle content.")
+        print("[moodle_loader] No MOODLE_TOKEN set in .env - skipping Moodle content.")
         return []
 
     if not MOODLE_COURSE_IDS:
-        print("[moodle_loader] No MOODLE_COURSE_IDS set in .env — skipping Moodle content.")
+        print("[moodle_loader] No MOODLE_COURSE_IDS set in .env - skipping Moodle content.")
         return []
 
     all_results = []
@@ -77,3 +78,53 @@ def fetch_moodle_pages():
 
     print(f"[moodle_loader] Total fetched: {len(all_results)} page(s) across {len(MOODLE_COURSE_IDS)} course(s)")
     return all_results
+
+
+def fetch_moodle_assignments():
+    """
+    Returns a list of assignment dicts across all configured courses:
+    { "course_id": ..., "name": ..., "due_date": "YYYY-MM-DD", "max_grade": ... }
+    using the mod_assign_get_assignments Moodle function.
+    """
+    if not MOODLE_TOKEN or not MOODLE_COURSE_IDS:
+        print("[moodle_loader] Missing token or course IDs - skipping assignments.")
+        return []
+
+    endpoint = f"{MOODLE_URL}/webservice/rest/server.php"
+    params = {
+        "wstoken": MOODLE_TOKEN,
+        "wsfunction": "mod_assign_get_assignments",
+        "moodlewsrestformat": "json",
+    }
+    for i, course_id in enumerate(MOODLE_COURSE_IDS):
+        params[f"courseids[{i}]"] = course_id
+
+    try:
+        response = requests.get(endpoint, params=params, timeout=10)
+        data = response.json()
+    except Exception as e:
+        print(f"[moodle_loader] Could not fetch assignments: {e}")
+        return []
+
+    if isinstance(data, dict) and "exception" in data:
+        print(f"[moodle_loader] Moodle error fetching assignments: {data}")
+        return []
+
+    results = []
+    for course in data.get("courses", []):
+        course_id = course.get("id")
+        for assignment in course.get("assignments", []):
+            due_timestamp = assignment.get("duedate", 0)
+            if due_timestamp:
+                due_date = datetime.fromtimestamp(due_timestamp, tz=timezone.utc).strftime("%Y-%m-%d")
+            else:
+                due_date = None
+            results.append({
+                "course_id": course_id,
+                "name": assignment.get("name"),
+                "due_date": due_date,
+                "max_grade": assignment.get("grade"),
+            })
+
+    print(f"[moodle_loader] Fetched {len(results)} assignment(s)")
+    return results
