@@ -1,13 +1,23 @@
+import os
+import sys
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from rag_engine import build_index, search
 from generator import generate_answer
 
+# moodle_loader.py lives in a sibling folder (../moodle-integration), not here.
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "moodle-integration"))
+from moodle_loader import (
+    fetch_moodle_assignments,
+    fetch_moodle_enrolled_students,
+    fetch_moodle_attendance_sessions,
+)
+
 app = FastAPI()
 
 # Allow Roshan's React dev server (port 3000) to call this API.
-# Without this, the browser blocks the request even if the server responds fine —
+# Without this, the browser blocks the request even if the server responds fine -
 # this is a browser security feature called CORS, not a bug in either of our code.
 app.add_middleware(
     CORSMiddleware,
@@ -78,7 +88,7 @@ def chat(request: ChatRequest):
     if not results or results[0]["score"] < RELEVANCE_THRESHOLD:
         query_log.insert(0, {"question": request.message, "status": "Escalated"})
         return {
-            "text": "I'm not sure — try Student Services.",
+            "text": "I'm not sure - try Student Services.",
             "sources": ["Student Handbook"],
             "unmatched": True,
         }
@@ -107,3 +117,21 @@ def dashboard():
         "documentsIndexed": len(set(sources)),
         "recentQueries": query_log[:5],
     }
+
+
+@app.get("/api/moodle/assignments")
+def moodle_assignments():
+    """Live assignment due dates pulled directly from Moodle."""
+    return fetch_moodle_assignments()
+
+
+@app.get("/api/moodle/students")
+def moodle_students():
+    """Live enrolled-student list pulled directly from Moodle, per course."""
+    return fetch_moodle_enrolled_students()
+
+
+@app.get("/api/moodle/attendance")
+def moodle_attendance():
+    """Live attendance session dates pulled directly from Moodle, per course."""
+    return fetch_moodle_attendance_sessions()
