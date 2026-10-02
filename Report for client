@@ -1,0 +1,161 @@
+# CIHE SmartAssist — Client Demonstration Report
+
+_As of 2 October 2026_
+
+## Summary
+
+CIHE SmartAssist is an AI student-support assistant that answers questions in plain language using CIHE's own documents, and sends students to Student Services when it cannot find a reliable answer.
+
+The demonstration shows three things:
+
+- A student asks a question and receives an answer drawn from CIHE material, with the source document named.
+- A question outside the knowledge base gets a safe fallback instead of a guess.
+- A staff dashboard reports total queries, answered queries, indexed documents, and recent questions.
+
+The `feature/angit-moodle-database` branch adds the research case for Moodle as a second knowledge source, plus the hallucination-reduction approach and the safety protocol. It is open as [pull request #2](https://github.com/Aashutosh-bot/CiheSMARTASSIST/pull/2) and has not yet been reviewed or merged.
+
+## Project overview
+
+Students lose time searching long handbooks and scattered documents for answers to routine questions. SmartAssist gives them one place to ask, and acts as a first point of contact before Student Services.
+
+Typical questions it is built for:
+
+- Where do I find information about my courses?
+- What are the requirements for this subject?
+- What does the student handbook say about a topic?
+- Who do I contact for further help?
+
+The project has four goals: faster access to support information, answers that are easy to understand, natural-language questions, and every answer grounded in official CIHE resources.
+
+## Features
+
+The README lists seven capabilities in the current build.
+
+| Feature | What the client sees |
+| --- | --- |
+| AI student assistant | A chat interface that accepts questions in everyday language |
+| Document-based answers | Responses built from CIHE-provided documents, not general AI knowledge |
+| Semantic search | Matches on meaning, so a question need not use the handbook's exact wording |
+| RAG architecture | Retrieval first, then answer generation from what was retrieved |
+| Source awareness | The response names the document the information came from |
+| Hallucination control | No sufficiently relevant match means no invented answer; the student is sent to Student Services |
+| Dashboard | Total queries, answered queries, indexed documents, recent questions |
+
+## Architecture and technology
+
+SmartAssist uses Retrieval-Augmented Generation (RAG): it finds the relevant CIHE text first, then writes the answer from that text only.
+
+```mermaid
+flowchart LR
+    D["CIHE documents<br/>handbooks, policies"] --> I["Vector index<br/>embeddings in FAISS"]
+    M["Moodle content<br/>proposed source"] -.-> I
+    Q["Student question<br/>React chat frontend"] --> R["Retrieve passages<br/>FastAPI + RAG engine"]
+    I --> R
+    R --> C{"Good match?"}
+    C -- yes --> A["Grounded answer<br/>names its source"]
+    C -- no --> F["Safe fallback<br/>Student Services"]
+```
+
+A question with no good match goes to the fallback, never to a guessed answer. The dashed arrow is the Moodle source proposed on this branch.
+
+| Layer | Technology | Role |
+| --- | --- | --- |
+| Frontend | React | Chat interface for students |
+| Backend API | Python, FastAPI | Receives questions, returns answers, serves the dashboard |
+| Request validation | Pydantic | Checks incoming API requests |
+| Embeddings | Sentence Transformers | Turns questions and document text into vectors |
+| Retrieval | FAISS | Similarity search over the document vectors |
+
+The repository is organised into `frontend`, `backend-rag`, `backend-data`, `moodle-integration`, `design` and `docs` folders.
+
+## Moodle integration branch
+
+The branch `feature/angit-moodle-database` adds three research write-ups (385 lines, 3 commits on 11 September 2026) and no code changes. It sets out why Moodle belongs in the knowledge base and how the system stays safe once it is there.
+
+| Document | What it establishes |
+| --- | --- |
+| Why Moodle was used | Handbooks and PDFs do not hold everything. Moodle carries course-specific material: lecture content, pages, files, assignments, announcements. |
+| Hallucination reduction | Six techniques that keep answers tied to retrieved CIHE text. |
+| Future improvements and safety protocol | Five planned upgrades and nine safety rules. |
+
+### Why Moodle
+
+- **Coverage:** answers can draw on course material that is not in the student handbook.
+- **Course-specific answers:** results can reflect the student's own subject.
+- **Less manual upkeep:** content is loaded from Moodle instead of collected by hand.
+- **Same pipeline:** Moodle content is chunked, embedded and retrieved through the existing RAG engine.
+- **Familiar ground:** students already use Moodle daily.
+
+### How hallucination is reduced
+
+1. Answers are generated from retrieved CIHE text, not the model's general knowledge.
+2. Retrieved text is checked for relevance before it is used.
+3. No sufficient match triggers a fallback message pointing to Student Services.
+4. The source is shown so students can verify the answer.
+5. The model is instructed to stay within the retrieved context.
+6. A fixed set of test questions is compared against the source documents.
+
+### Safety protocol
+
+| Rule | Commitment |
+| --- | --- |
+| Data access control | Only authorised Moodle content is read; least privilege per component |
+| Credential protection | Moodle tokens live in environment variables or a secrets manager, never in code or GitHub |
+| Student privacy | Personal data is minimised and handled under CIHE policy |
+| Prompt-injection protection | Retrieved documents are treated as information, not instructions |
+| No unsupported answers | No reliable source means no guess, above all for policy, assessment, fees and enrolment |
+| Source verification | Planned check of each drafted answer against its sources |
+| Human escalation | Questions needing judgement or private records go to staff |
+| Logging and monitoring | Failed retrievals, errors and unusual access are logged without unnecessary personal data |
+| Security testing | Repeated before deployment and after every major change |
+
+## Demo walkthrough
+
+A suggested running order of six steps, about 15 minutes. Adjust the questions to match the documents loaded on the day.
+
+1. **Set the scene (2 min).** State the problem: students search long handbooks for routine answers.
+2. **Ask a question the documents answer (3 min).** For example, "What does the student handbook say about attendance?" Point out the named source under the answer.
+3. **Rephrase the same question (2 min).** Use different wording to show semantic search finds the same passage.
+4. **Ask a question outside the documents (2 min).** Show the fallback: no guess, and a referral to Student Services.
+5. **Open the dashboard (2 min).** Show total queries, answered queries, indexed documents and recent questions, including the ones just asked.
+6. **Present the Moodle plan (4 min).** Use the architecture diagram, then the safety protocol table.
+
+Before the session:
+
+- [ ] Confirm which CIHE documents are indexed and pick demo questions from them
+- [ ] Run every demo question once and note the expected answer and source
+- [ ] Start backend and frontend early and keep a screen recording as backup
+- [ ] Clear or reset dashboard counts if a clean start is wanted
+
+## Status and next steps
+
+The project is in development: the core question-and-answer flow and dashboard exist on `main` (19 commits), and the Moodle work on this branch is at the research stage.
+
+Tidy-ups worth doing before the client sees the repository:
+
+- [ ] Review and merge pull request #2, which has no reviewers yet
+- [ ] Rename the file "Reduce air hallucination" to "Reduce AI hallucination"
+- [ ] Give the three write-ups a `.md` extension and move them into `docs`
+- [ ] Update the README project structure, which lists `client`, `server` and `main.py` while the repository uses `frontend`, `backend-rag` and `backend-data`
+
+Planned improvements, as set out on the branch:
+
+| Improvement | Benefit to CIHE |
+| --- | --- |
+| Automatic Moodle synchronisation | Knowledge base tracks new, changed and deleted course content |
+| Retrieval tuning | Better matches through tested chunk sizes, embedding models, thresholds and re-ranking |
+| Answer verification | Each drafted answer is checked against its sources before it is shown |
+| Section-level citations | Students see the document and the section an answer came from |
+| Personalised course retrieval | With authorisation, results favour the student's own subjects |
+
+Open questions for the team:
+
+- Does the current build load live Moodle content, or only exported files?
+- Which language model generates the answers, and where is it hosted?
+- How many documents are indexed today, and what did the test questions score?
+
+## Sources
+
+- [CIHE SmartAssist repository and README](https://github.com/Aashutosh-bot/CiheSMARTASSIST)
+- [Pull request #2: Feature/angit moodle database](https://github.com/Aashutosh-bot/CiheSMARTASSIST/pull/2)
+- [Pull request #2: files changed](https://github.com/Aashutosh-bot/CiheSMARTASSIST/pull/2/files)
