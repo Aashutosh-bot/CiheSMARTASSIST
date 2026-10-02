@@ -23,6 +23,8 @@ function AdminDashboard() {
   const [editSessionForm, setEditSessionForm] = useState(null);
   const [weeklyStudentId, setWeeklyStudentId] = useState("");
   const [weeklyUnitCode, setWeeklyUnitCode] = useState("");
+  const [moodleAssignments, setMoodleAssignments] = useState([]);
+  const [moodleStudents, setMoodleStudents] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -39,6 +41,8 @@ function AdminDashboard() {
     fetch("/api/attendance").then(r => r.json()).then(setAttendance);
     fetch("/api/assessments").then(r => r.json()).then(setAssessments);
     fetch("/api/timetable").then(r => r.json()).then(setTimetableSessions);
+    fetch("/api/moodle/assignments").then(r => r.json()).then(setMoodleAssignments);
+    fetch("/api/moodle/students").then(r => r.json()).then(setMoodleStudents);
   }
 
   function logout() {
@@ -209,7 +213,8 @@ function AdminDashboard() {
           { id: "students", label: "Manage Students" },
           { id: "attendance", label: "Attendance" },
           { id: "assessments", label: "Assessments" },
-          { id: "timetable", label: "Timetable" }
+          { id: "timetable", label: "Timetable" },
+          { id: "moodle", label: "Moodle Live Data" }
         ].map(t => (
           <button
             key={t.id}
@@ -634,6 +639,67 @@ function AdminDashboard() {
                         </td>
                       </tr>
                     )
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "moodle" && (
+          <div>
+            <div style={{ fontSize: 20, fontWeight: "bold", color: "#0f2a52", marginBottom: 16 }}>Moodle Live Data</div>
+            <div style={{ fontSize: 12, color: "#888", marginBottom: 20 }}>
+              This data is pulled live from Moodle via the RAG backend. It is read-only here — manage it in Moodle itself.
+            </div>
+
+            <div style={{ fontSize: 16, fontWeight: "bold", color: "#0f2a52", marginBottom: 10 }}>Assignments</div>
+            <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", marginBottom: 30 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>Course ID</th>
+                    <th style={thStyle}>Assignment Name</th>
+                    <th style={thStyle}>Due Date</th>
+                    <th style={thStyle}>Max Grade</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {moodleAssignments.length === 0 && (
+                    <tr><td colSpan={4} style={{ ...tdStyle, textAlign: "center", color: "#999" }}>No assignments found.</td></tr>
+                  )}
+                  {moodleAssignments.map((a, i) => (
+                    <tr key={i}>
+                      <td style={tdStyle}>{a.course_id}</td>
+                      <td style={tdStyle}>{a.name}</td>
+                      <td style={tdStyle}>{a.due_date}</td>
+                      <td style={tdStyle}>{a.max_grade}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ fontSize: 16, fontWeight: "bold", color: "#0f2a52", marginBottom: 10 }}>Enrolled Students</div>
+            <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>Course ID</th>
+                    <th style={thStyle}>Name</th>
+                    <th style={thStyle}>Email</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {moodleStudents.length === 0 && (
+                    <tr><td colSpan={3} style={{ ...tdStyle, textAlign: "center", color: "#999" }}>No enrolled students found.</td></tr>
+                  )}
+                  {moodleStudents.map((s, i) => (
+                    <tr key={i}>
+                      <td style={tdStyle}>{s.course_id}</td>
+                      <td style={tdStyle}>{s.name}</td>
+                      <td style={tdStyle}>{s.email}</td>
+                    </tr>
                   ))}
                 </tbody>
               </table>
