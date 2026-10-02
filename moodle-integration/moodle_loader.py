@@ -128,3 +128,47 @@ def fetch_moodle_assignments():
 
     print(f"[moodle_loader] Fetched {len(results)} assignment(s)")
     return results
+
+
+def fetch_moodle_enrolled_students():
+    """
+    Returns a list of enrolled student dicts across all configured courses:
+    { "course_id": ..., "student_id": ..., "name": ..., "email": ... }
+    using core_enrol_get_enrolled_users (one course per call).
+    """
+    if not MOODLE_TOKEN or not MOODLE_COURSE_IDS:
+        print("[moodle_loader] Missing token or course IDs - skipping enrolled students.")
+        return []
+
+    endpoint = f"{MOODLE_URL}/webservice/rest/server.php"
+    all_results = []
+
+    for course_id in MOODLE_COURSE_IDS:
+        params = {
+            "wstoken": MOODLE_TOKEN,
+            "wsfunction": "core_enrol_get_enrolled_users",
+            "moodlewsrestformat": "json",
+            "courseid": course_id,
+        }
+
+        try:
+            response = requests.get(endpoint, params=params, timeout=10)
+            data = response.json()
+        except Exception as e:
+            print(f"[moodle_loader] Could not fetch enrolled users for course {course_id}: {e}")
+            continue
+
+        if isinstance(data, dict) and "exception" in data:
+            print(f"[moodle_loader] Moodle error for course {course_id}: {data}")
+            continue
+
+        for user in data:
+            all_results.append({
+                "course_id": course_id,
+                "student_id": user.get("id"),
+                "name": user.get("fullname"),
+                "email": user.get("email"),
+            })
+
+    print(f"[moodle_loader] Fetched {len(all_results)} enrollment(s) across {len(MOODLE_COURSE_IDS)} course(s)")
+    return all_results
