@@ -37,6 +37,14 @@ function NavIcon({ id }) {
       return <svg {...common}><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 13 9 5 9-5" /></svg>;
     case "logout":
       return <svg {...common}><path d="M12 3v8" /><path d="M18.4 6.6a8 8 0 1 1-12.8 0" /></svg>;
+    case "menu":
+      return <svg {...common}><path d="M4 7h16" /><path d="M4 12h16" /><path d="M4 17h16" /></svg>;
+    case "search":
+      return <svg {...common}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>;
+    case "bell":
+      return <svg {...common}><path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10Z" /><path d="M10 19a2 2 0 0 0 4 0" /></svg>;
+    case "chevron-down":
+      return <svg {...common} width="12" height="12"><path d="m6 9 6 6 6-6" /></svg>;
     default:
       return null;
   }
@@ -79,6 +87,7 @@ function Dashboard() {
   const [myMoodleAttendance, setMyMoodleAttendance] = useState([]);
   const [moodleLoaded, setMoodleLoaded] = useState(false);
   const [moodleLoading, setMoodleLoading] = useState(false);
+  const [moodleError, setMoodleError] = useState("");
   const navigate = useNavigate();
 
   const studentName = localStorage.getItem("studentName") || "Student";
@@ -100,15 +109,27 @@ function Dashboard() {
   }, [navigate]);
 
   function loadMyMoodleData() {
-    if (!studentEmail) return;
+    setMoodleError("");
+    if (!studentEmail) {
+      setMoodleError("No student email found for this session. Please log out and log back in, then try again.");
+      return;
+    }
     setMoodleLoading(true);
     Promise.all([
-      fetch(`/api/moodle/submissions/student?email=${encodeURIComponent(studentEmail)}`).then(r => r.json()).catch(() => []),
-      fetch(`/api/moodle/attendance-records/student?email=${encodeURIComponent(studentEmail)}`).then(r => r.json()).catch(() => []),
+      fetch(`/api/moodle/submissions/student?email=${encodeURIComponent(studentEmail)}`).then(r => {
+        if (!r.ok) throw new Error(`Submissions request failed (${r.status})`);
+        return r.json();
+      }),
+      fetch(`/api/moodle/attendance-records/student?email=${encodeURIComponent(studentEmail)}`).then(r => {
+        if (!r.ok) throw new Error(`Attendance request failed (${r.status})`);
+        return r.json();
+      }),
     ]).then(([submissions, attendanceRecords]) => {
       setMyMoodleSubmissions(submissions);
       setMyMoodleAttendance(attendanceRecords);
       setMoodleLoaded(true);
+    }).catch(err => {
+      setMoodleError(`Couldn't reach the Moodle backend: ${err.message}. Make sure the FastAPI server (backend-rag, port 5001) is running.`);
     }).finally(() => setMoodleLoading(false));
   }
 
@@ -201,6 +222,8 @@ function Dashboard() {
         .sa-card { transition: transform 0.18s ease, box-shadow 0.18s ease; }
         .sa-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(15,42,82,0.1); }
         .sa-card:hover .sa-iconbox { transform: scale(1.1) rotate(-4deg); }
+        .sa-btn-primary { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+        .sa-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(79,70,229,0.3); }
       `}</style>
       <div style={{ display: "flex", flex: 1, alignItems: "stretch" }}>
 
@@ -275,10 +298,10 @@ function Dashboard() {
                 onClick={() => setSidebarOpen(open => !open)}
                 style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: NAVY, padding: 4 }}
               >
-                ☰
+                <NavIcon id="menu" />
               </button>
               <div style={{ position: "relative", maxWidth: 360, width: "100%" }}>
-                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14, color: "#999" }}>🔍</span>
+                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#999", display: "flex" }}><NavIcon id="search" /></span>
                 <input
                   type="text"
                   placeholder="Search your units..."
@@ -313,8 +336,8 @@ function Dashboard() {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
-              <div style={{ position: "relative", cursor: "pointer" }} onClick={toggleNotifications}>
-                <span style={{ fontSize: 19 }}>🔔</span>
+              <div style={{ position: "relative", cursor: "pointer", color: "#44485a" }} onClick={toggleNotifications}>
+                <NavIcon id="bell" />
                 {notifications.some(n => !n.read) && (
                   <span style={{ position: "absolute", top: -5, right: -7, background: "#dc3545", color: "white", borderRadius: "50%", width: 16, height: 16, fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     {notifications.filter(n => !n.read).length}
@@ -350,7 +373,7 @@ function Dashboard() {
                     <div style={{ fontSize: 13.5, color: "#222", fontWeight: "bold" }}>{studentName}</div>
                     <div style={{ fontSize: 11, color: "#888" }}>Student</div>
                   </div>
-                  <span style={{ fontSize: 10, color: "#999", marginLeft: 2 }}>▾</span>
+                  <span style={{ color: "#999", marginLeft: 2, display: "flex" }}><NavIcon id="chevron-down" /></span>
                 </div>
 
                 {profileMenuOpen && (
@@ -364,8 +387,8 @@ function Dashboard() {
                       <div onClick={() => goTo("profile")} style={{ padding: "12px 16px", fontSize: 14, color: "#333", cursor: "pointer", borderBottom: "1px solid #e0e0e0" }}>
                         My Profile
                       </div>
-                      <div onClick={logout} style={{ padding: "12px 16px", fontSize: 14, color: "#dc3545", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-                        ⏻ Log out
+                      <div onClick={logout} style={{ padding: "12px 16px", fontSize: 14, color: "#dc3545", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                        <NavIcon id="logout" /> Log out
                       </div>
                     </div>
                   </>
@@ -605,100 +628,119 @@ function Dashboard() {
 
             {activeTab === "moodle" && (
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
                   <div>
-                    <div style={{ fontSize: 22, fontWeight: "bold", color: NAVY }}>My Moodle</div>
-                    <div style={{ color: "#888", fontSize: 13, marginTop: 4 }}>Your real submission and attendance records, pulled live from Moodle.</div>
+                    <div style={{ fontSize: 26, fontWeight: "bold", color: NAVY }}>My Moodle</div>
+                    <div style={{ color: "#888", fontSize: 14, marginTop: 5 }}>Your real submission and attendance records, pulled live from Moodle.</div>
                   </div>
                   <button
                     onClick={loadMyMoodleData}
                     disabled={moodleLoading}
-                    style={{ padding: "9px 18px", background: NAVY, color: "white", border: "none", borderRadius: 6, fontSize: 13, cursor: moodleLoading ? "default" : "pointer", opacity: moodleLoading ? 0.6 : 1, whiteSpace: "nowrap" }}
+                    className="sa-btn-primary"
+                    style={{ padding: "12px 24px", background: ACCENT, color: "white", border: "none", borderRadius: 24, fontSize: 14, fontWeight: "bold", cursor: moodleLoading ? "default" : "pointer", opacity: moodleLoading ? 0.6 : 1, whiteSpace: "nowrap" }}
                   >
-                    {moodleLoading ? "Loading..." : moodleLoaded ? "Refresh" : "Load my Moodle data"}
+                    {moodleLoading ? "Loading..." : moodleLoaded ? "↻ Refresh" : "Load my Moodle data"}
                   </button>
                 </div>
 
-                <div style={{ fontSize: 16, fontWeight: "bold", color: NAVY, marginBottom: 12 }}>My Assignment Submissions</div>
-                <div style={{ ...cardStyle, overflow: "hidden", marginBottom: 28 }}>
-                  <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr>
-                        <th style={{ background: NAVY, color: "white", padding: "10px 14px", textAlign: "left", fontSize: 12 }}>Assignment</th>
-                        <th style={{ background: NAVY, color: "white", padding: "10px 14px", textAlign: "left", fontSize: 12 }}>Due Date</th>
-                        <th style={{ background: NAVY, color: "white", padding: "10px 14px", textAlign: "left", fontSize: 12 }}>Status</th>
-                        <th style={{ background: NAVY, color: "white", padding: "10px 14px", textAlign: "left", fontSize: 12 }}>Grading</th>
-                        <th style={{ background: NAVY, color: "white", padding: "10px 14px", textAlign: "left", fontSize: 12 }}>Grade</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {!moodleLoaded && (
-                        <tr><td colSpan={5} style={{ padding: 16, color: "#888", fontSize: 13 }}>Click "Load my Moodle data" to fetch your live submission status.</td></tr>
-                      )}
-                      {moodleLoaded && myMoodleSubmissions.length === 0 && (
-                        <tr><td colSpan={5} style={{ padding: 16, color: "#888", fontSize: 13 }}>No submission records found for your account.</td></tr>
-                      )}
-                      {myMoodleSubmissions.map((s, i) => (
-                        <tr key={i}>
-                          <td style={{ padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #f0f0f0" }}>{s.assignment_name}</td>
-                          <td style={{ padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #f0f0f0" }}>{s.due_date}</td>
-                          <td style={{ padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #f0f0f0" }}>
-                            <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: "bold", background: s.status === "submitted" ? "#d4edda" : "#fff3cd", color: s.status === "submitted" ? "#155724" : "#a15c00" }}>
-                              {s.status}
-                            </span>
-                          </td>
-                          <td style={{ padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #f0f0f0" }}>{s.grading_status}</td>
-                          <td style={{ padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #f0f0f0" }}>{s.grade ?? "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                {moodleError && (
+                  <div style={{ background: "#fdeeee", border: "1px solid #f5c2c2", color: "#a12d2d", borderRadius: 10, padding: "14px 18px", fontSize: 13.5, marginBottom: 24 }}>
+                    ⚠ {moodleError}
                   </div>
-                </div>
+                )}
 
-                <div style={{ fontSize: 16, fontWeight: "bold", color: NAVY, marginBottom: 12 }}>My Attendance Records</div>
-                <div style={{ ...cardStyle, overflow: "hidden" }}>
-                  <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr>
-                        <th style={{ background: NAVY, color: "white", padding: "10px 14px", textAlign: "left", fontSize: 12 }}>Course ID</th>
-                        <th style={{ background: NAVY, color: "white", padding: "10px 14px", textAlign: "left", fontSize: 12 }}>Date</th>
-                        <th style={{ background: NAVY, color: "white", padding: "10px 14px", textAlign: "left", fontSize: 12 }}>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {!moodleLoaded && (
-                        <tr><td colSpan={3} style={{ padding: 16, color: "#888", fontSize: 13 }}>Click "Load my Moodle data" to fetch your live attendance marks.</td></tr>
-                      )}
-                      {moodleLoaded && myMoodleAttendance.length === 0 && (
-                        <tr><td colSpan={3} style={{ padding: 16, color: "#888", fontSize: 13 }}>No attendance records found for your account.</td></tr>
-                      )}
-                      {myMoodleAttendance.map((r, i) => {
-                        const statusColors = {
-                          Present: { bg: "#d4edda", fg: "#155724" },
-                          Late: { bg: "#fff3cd", fg: "#a15c00" },
-                          Excused: { bg: "#d1ecf1", fg: "#0c5460" },
-                          Absent: { bg: "#f8d7da", fg: "#721c24" },
-                        };
-                        const colors = statusColors[r.status] || { bg: "#eee", fg: "#555" };
-                        return (
-                          <tr key={i}>
-                            <td style={{ padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #f0f0f0" }}>{r.course_id}</td>
-                            <td style={{ padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #f0f0f0" }}>{r.date}</td>
-                            <td style={{ padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #f0f0f0" }}>
-                              <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: "bold", background: colors.bg, color: colors.fg }}>
-                                {r.status}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                {moodleLoaded && !moodleError && (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 18, marginBottom: 30 }}>
+                    <div className="sa-card" style={{ ...cardStyle, padding: "20px 22px" }}>
+                      <div style={{ fontSize: 13, color: "#888" }}>Submissions Tracked</div>
+                      <div style={{ fontSize: 32, fontWeight: "bold", color: NAVY, marginTop: 6 }}>{myMoodleSubmissions.length}</div>
+                    </div>
+                    <div className="sa-card" style={{ ...cardStyle, padding: "20px 22px" }}>
+                      <div style={{ fontSize: 13, color: "#888" }}>Submitted</div>
+                      <div style={{ fontSize: 32, fontWeight: "bold", color: "#155724", marginTop: 6 }}>
+                        {myMoodleSubmissions.filter(s => s.status === "submitted").length}
+                      </div>
+                    </div>
+                    <div className="sa-card" style={{ ...cardStyle, padding: "20px 22px" }}>
+                      <div style={{ fontSize: 13, color: "#888" }}>Attendance Records</div>
+                      <div style={{ fontSize: 32, fontWeight: "bold", color: NAVY, marginTop: 6 }}>{myMoodleAttendance.length}</div>
+                    </div>
+                    <div className="sa-card" style={{ ...cardStyle, padding: "20px 22px" }}>
+                      <div style={{ fontSize: 13, color: "#888" }}>Present Rate</div>
+                      <div style={{ fontSize: 32, fontWeight: "bold", color: ACCENT, marginTop: 6 }}>
+                        {myMoodleAttendance.length > 0
+                          ? `${Math.round((myMoodleAttendance.filter(r => r.status === "Present").length / myMoodleAttendance.length) * 100)}%`
+                          : "—"}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                <div style={{ fontSize: 18, fontWeight: "bold", color: NAVY, marginBottom: 14 }}>My Assignment Submissions</div>
+                {!moodleLoaded && (
+                  <div style={{ ...cardStyle, padding: 28, textAlign: "center", color: "#999", fontSize: 14, marginBottom: 32 }}>
+                    Click "Load my Moodle data" above to fetch your live submission status.
+                  </div>
+                )}
+                {moodleLoaded && myMoodleSubmissions.length === 0 && !moodleError && (
+                  <div style={{ ...cardStyle, padding: 28, textAlign: "center", color: "#999", fontSize: 14, marginBottom: 32 }}>
+                    No submission records found for your account.
+                  </div>
+                )}
+                {moodleLoaded && myMoodleSubmissions.length > 0 && (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 18, marginBottom: 32 }}>
+                    {myMoodleSubmissions.map((s, i) => (
+                      <div key={i} className="sa-card" style={{ ...cardStyle, padding: "20px 22px" }}>
+                        <div style={{ fontSize: 15.5, fontWeight: "bold", color: NAVY, marginBottom: 8 }}>{s.assignment_name}</div>
+                        <div style={{ fontSize: 13, color: "#888", marginBottom: 14 }}>Due {s.due_date}</div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                          <span style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12.5, fontWeight: "bold", background: s.status === "submitted" ? "#d4edda" : "#fff3cd", color: s.status === "submitted" ? "#155724" : "#a15c00" }}>
+                            {s.status}
+                          </span>
+                          <span style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12.5, fontWeight: "bold", background: "#eef0fe", color: ACCENT }}>
+                            {s.grading_status}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 14, color: "#222" }}>
+                          Grade: <strong>{s.grade ?? "Not graded yet"}</strong>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ fontSize: 18, fontWeight: "bold", color: NAVY, marginBottom: 14 }}>My Attendance Records</div>
+                {!moodleLoaded && (
+                  <div style={{ ...cardStyle, padding: 28, textAlign: "center", color: "#999", fontSize: 14 }}>
+                    Click "Load my Moodle data" above to fetch your live attendance marks.
+                  </div>
+                )}
+                {moodleLoaded && myMoodleAttendance.length === 0 && !moodleError && (
+                  <div style={{ ...cardStyle, padding: 28, textAlign: "center", color: "#999", fontSize: 14 }}>
+                    No attendance records found for your account.
+                  </div>
+                )}
+                {moodleLoaded && myMoodleAttendance.length > 0 && (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
+                    {myMoodleAttendance.map((r, i) => {
+                      const statusColors = {
+                        Present: { bg: "#d4edda", fg: "#155724" },
+                        Late: { bg: "#fff3cd", fg: "#a15c00" },
+                        Excused: { bg: "#d1ecf1", fg: "#0c5460" },
+                        Absent: { bg: "#f8d7da", fg: "#721c24" },
+                      };
+                      const colors = statusColors[r.status] || { bg: "#eee", fg: "#555" };
+                      return (
+                        <div key={i} className="sa-card" style={{ ...cardStyle, padding: "18px 20px" }}>
+                          <div style={{ fontSize: 13, color: "#888", marginBottom: 6 }}>Course {r.course_id} · {r.date}</div>
+                          <span style={{ padding: "6px 16px", borderRadius: 20, fontSize: 13.5, fontWeight: "bold", background: colors.bg, color: colors.fg }}>
+                            {r.status}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
