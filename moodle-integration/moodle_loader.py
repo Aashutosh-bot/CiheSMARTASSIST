@@ -86,7 +86,7 @@ def fetch_moodle_pages():
 def fetch_moodle_assignments():
     """
     Returns a list of assignment dicts across all configured courses:
-    { "course_id": ..., "name": ..., "due_date": "YYYY-MM-DD", "max_grade": ... }
+    { "course_id": ..., "assignment_id": ..., "name": ..., "due_date": "YYYY-MM-DD", "max_grade": ... }
     using the mod_assign_get_assignments Moodle function.
     """
     if not MOODLE_TOKEN or not MOODLE_COURSE_IDS:
@@ -124,12 +124,111 @@ def fetch_moodle_assignments():
                 due_date = None
             results.append({
                 "course_id": course_id,
+                "assignment_id": assignment.get("id"),
                 "name": assignment.get("name"),
                 "due_date": due_date,
                 "max_grade": assignment.get("grade"),
             })
 
     print(f"[moodle_loader] Fetched {len(results)} assignment(s)")
+    return results
+
+
+def fetch_moodle_assignment_submissions():
+    """
+    Returns a flat list of per-student submission records across every
+    assignment in every configured course:
+    {
+      "course_id": ..., "assignment_id": ..., "assignment_name": ...,
+      "due_date": "YYYY-MM-DD", "student_id": ..., "status": "new"|"submitted"|...,
+      "grading_status": "notgraded"|"graded"|..., "grade": "85.00" or None,
+      "submitted_at": "YYYY-MM-DD HH:MM" or None,
+    }
+    Combines mod_assign_get_assignments (for names/due dates), the
+    submissions themselves (mod_assign_get_submissions), and grades
+    (mod_assign_get_grades) in one pass so the frontend gets one ready-to-
+    display table instead of three separate calls.
+    """
+    if not MOODLE_TOKEN or not MOODLE_COURSE_IDS:
+        print("[moodle_loader] Missing token or course IDs - skipping submissions.")
+        return []
+
+    assignments = fetch_moodle_assignments()
+    assignment_ids = [a["assignment_id"] for a in assignments if a.get("assignment_id")]
+    if not assignment_ids:
+        return []
+
+    endpoint = f"{MOODLE_URL}/webservice/rest/server.php"
+
+    # --- submissions (status: new/submitted/draft, gradingstatus) ---
+    params = {
+        "wstoken": MOODLE_TOKEN,
+        "wsfunction": "mod_assign_get_submissions",
+        "moodlewsrestformat": "json",
+    }
+    for i, aid in enumerate(assignment_ids):
+        params[f"assignmentids[{i}]"] = aid
+
+    try:
+        response = requests.get(endpoint, params=params, timeout=10)
+        submissions_data = response.json()
+    except Exception as e:
+        print(f"[moodle_loader] Could not fetch submissions: {e}")
+        return []
+
+    if isinstance(submissions_data, dict) and "exception" in submissions_data:
+        print(f"[moodle_loader] Moodle error fetching submissions: {submissions_data}")
+        return []
+
+    # --- grades (numeric grade per student, once graded) ---
+    grade_params = {
+        "wstoken": MOODLE_TOKEN,
+        "wsfunction": "mod_assign_get_grades",
+        "moodlewsrestformat": "json",
+    }
+    for i, aid in enumerate(assignment_ids):
+        grade_params[f"assignmentids[{i}]"] = aid
+
+    try:
+        response = requests.get(endpoint, params=grade_params, timeout=10)
+        grades_data = response.json()
+    except Exception as e:
+        print(f"[moodle_loader] Could not fetch grades: {e}")
+        grades_data = {"assignments": []}
+
+    # grade lookup: (assignment_id, userid) -> grade string
+    grade_lookup = {}
+    for a in grades_data.get("assignments", []):
+        aid = a.get("assignmentid")
+        for g in a.get("grades", []):
+            grade_lookup[(aid, g.get("userid"))] = g.get("grade")
+
+    # assignment metadata lookup for name/due_date/course_id
+    meta_lookup = {a["assignment_id"]: a for a in assignments if a.get("assignment_id")}
+
+    results = []
+    for a in submissions_data.get("assignments", []):
+        aid = a.get("assignmentid")
+        meta = meta_lookup.get(aid, {})
+        for s in a.get("submissions", []):
+            submitted_timestamp = s.get("timemodified", 0)
+            submitted_at = (
+                datetime.fromtimestamp(submitted_timestamp, tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
+                if submitted_timestamp else None
+            )
+            results.append({
+                "course_id": meta.get("course_id"),
+                "assignment_id": aid,
+                "assignment_name": meta.get("name"),
+                "due_date": meta.get("due_date"),
+                "student_id": s.get("userid"),
+                "status": s.get("status"),
+                "grading_status": s.get("gradingstatus"),
+                "grade": grade_lookup.get((aid, s.get("userid"))),
+                "submitted_at": submitted_at,
+            })
+
+    print(f"[moodle_loader] Fetched {len(results)} submission record(s) across {len(assignment_ids)} assignment(s)")
     return results
 
 
@@ -264,4 +363,84 @@ def fetch_moodle_attendance_sessions():
             })
 
     print(f"[moodle_loader] Fetched {len(all_results)} attendance session(s) across {len(MOODLE_COURSE_IDS)} course(s)")
+    return all_results
+
+
+def fetch_moodle_attendance_records():
+    """
+    Returns a flat list of REAL per-student attendance marks (not just
+    session metadata) across every session in every configured course:
+    {
+      "course_id": ..., "session_id": ..., "date": "YYYY-MM-DD",
+      "description": ..., "student_id": ..., "student_name": ...,
+      "student_email": ..., "status": "Present"|"Late"|"Excused"|"Absent",
+      "status_acronym": "P"|"L"|"E"|"A",
+    }
+    Uses mod_attendance_get_session (singular) per session, which returns
+    the full roster taken for that session (attendance_log) plus the
+    status definitions (statuses) - this is the same data Moodle's own
+    "take attendance" screen uses, so it reflects real marks rather than
+    just a list of session dates.
+
+    This makes one Moodle call per session, so it is noticeably slower
+    than the other fetchers - call it on demand, not on every page load.
+    """
+    if not MOODLE_TOKEN or not MOODLE_COURSE_IDS:
+        print("[moodle_loader] Missing token or course IDs - skipping attendance records.")
+        return []
+
+    sessions = fetch_moodle_attendance_sessions()
+    if not sessions:
+        return []
+
+    # Build a student_id -> {name, email} lookup once, reused for every session
+    students_by_id = {
+        s["student_id"]: s for s in fetch_moodle_enrolled_students()
+    }
+
+    endpoint = f"{MOODLE_URL}/webservice/rest/server.php"
+    all_results = []
+
+    for session in sessions:
+        params = {
+            "wstoken": MOODLE_TOKEN,
+            "wsfunction": "mod_attendance_get_session",
+            "moodlewsrestformat": "json",
+            "sessionid": session["session_id"],
+        }
+        try:
+            response = requests.get(endpoint, params=params, timeout=10)
+            data = response.json()
+        except Exception as e:
+            print(f"[moodle_loader] Could not fetch session {session['session_id']}: {e}")
+            continue
+
+        if isinstance(data, dict) and "exception" in data:
+            print(f"[moodle_loader] Moodle error for session {session['session_id']}: {data}")
+            continue
+
+        status_lookup = {
+            st["id"]: {"description": st["description"], "acronym": st["acronym"]}
+            for st in data.get("statuses", [])
+        }
+
+        for log_entry in data.get("attendance_log", []):
+            student_id = log_entry.get("studentid")
+            status_id = int(log_entry.get("statusid"))
+            status_info = status_lookup.get(status_id, {"description": "Unknown", "acronym": "?"})
+            student_info = students_by_id.get(student_id, {})
+
+            all_results.append({
+                "course_id": session["course_id"],
+                "session_id": session["session_id"],
+                "date": session["date"],
+                "description": session["description"],
+                "student_id": student_id,
+                "student_name": student_info.get("name", f"User #{student_id}"),
+                "student_email": student_info.get("email", ""),
+                "status": status_info["description"],
+                "status_acronym": status_info["acronym"],
+            })
+
+    print(f"[moodle_loader] Fetched {len(all_results)} attendance record(s) across {len(sessions)} session(s)")
     return all_results

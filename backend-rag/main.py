@@ -10,8 +10,10 @@ from generator import generate_answer
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "moodle-integration"))
 from moodle_loader import (
     fetch_moodle_assignments,
+    fetch_moodle_assignment_submissions,
     fetch_moodle_enrolled_students,
     fetch_moodle_attendance_sessions,
+    fetch_moodle_attendance_records,
 )
 
 app = FastAPI()
@@ -135,3 +137,46 @@ def moodle_students():
 def moodle_attendance():
     """Live attendance session dates pulled directly from Moodle, per course."""
     return fetch_moodle_attendance_sessions()
+
+
+@app.get("/api/moodle/attendance-records")
+def moodle_attendance_records():
+    """
+    Real per-student attendance marks (Present/Late/Excused/Absent) pulled
+    from Moodle's attendance roster for every session. Slower than the
+    other endpoints (one Moodle call per session), so call this only when
+    the detailed view is actually opened, not on every page load.
+    """
+    return fetch_moodle_attendance_records()
+
+
+@app.get("/api/moodle/submissions")
+def moodle_submissions():
+    """
+    Real per-student assignment submission status, grading status, and
+    grade (once graded) pulled directly from Moodle.
+    """
+    return fetch_moodle_assignment_submissions()
+
+
+@app.get("/api/moodle/attendance-records/student")
+def moodle_attendance_records_for_student(email: str):
+    """
+    This student's own attendance records, filtered by email - used by the
+    student-facing "My Moodle" view so a student only sees their own marks.
+    """
+    records = fetch_moodle_attendance_records()
+    return [r for r in records if r["student_email"] == email]
+
+
+@app.get("/api/moodle/submissions/student")
+def moodle_submissions_for_student(email: str):
+    """
+    This student's own assignment submission status - used by the
+    student-facing "My Moodle" view.
+    """
+    student = next((s for s in fetch_moodle_enrolled_students() if s["email"] == email), None)
+    if not student:
+        return []
+    submissions = fetch_moodle_assignment_submissions()
+    return [s for s in submissions if s["student_id"] == student["student_id"]]
