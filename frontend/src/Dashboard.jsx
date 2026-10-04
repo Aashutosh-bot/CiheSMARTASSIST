@@ -923,6 +923,12 @@ function Dashboard() {
             )}
 
           </div>
+
+          {activeTab !== "chat" && (
+            <div style={{ borderTop: "1px solid #ebedf1", padding: "16px 32px", textAlign: "center", fontSize: 12, color: "#aaa" }}>
+              CIHE SmartAssist · Your AI campus assistant · Data synced live from Moodle
+            </div>
+          )}
         </div>
       </div>
     </div>

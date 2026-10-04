@@ -5,6 +5,47 @@ import { WEEKDAYS, SEMESTER_OPTIONS, DEFAULT_SEMESTER, SEMESTERS, TEACHING_WEEKS
 
 const SESSION_MODES = ["Lecture", "Workshop", "Lab", "Tutorial", "Seminar"];
 
+// Click-to-toggle unit picker — replaces the native multi-select (which needs an
+// unintuitive ctrl/cmd-click to pick more than one option, the #1 cause of
+// "I can't add a subject to a student" confusion).
+function UnitTogglePicker({ units, selected, onChange, compact }) {
+  function toggle(code) {
+    if (selected.includes(code)) onChange(selected.filter(c => c !== code));
+    else onChange([...selected, code]);
+  }
+  if (units.length === 0) {
+    return <div style={{ fontSize: 12, color: "#999", fontStyle: "italic" }}>No units yet — add one in Manage Units first.</div>;
+  }
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxWidth: compact ? 220 : 420 }}>
+      {units.map(u => {
+        const active = selected.includes(u.code);
+        return (
+          <button
+            type="button"
+            key={u.code}
+            onClick={() => toggle(u.code)}
+            title={u.name}
+            style={{
+              padding: compact ? "4px 9px" : "6px 12px",
+              borderRadius: 16,
+              border: active ? "1px solid #0f2a52" : "1px solid #d4d7de",
+              background: active ? "#0f2a52" : "white",
+              color: active ? "white" : "#444",
+              fontSize: compact ? 11 : 12.5,
+              fontWeight: active ? "bold" : "normal",
+              cursor: "pointer",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {active ? "✓ " : "+ "}{u.code}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function AdminDashboard() {
   const [units, setUnits] = useState([]);
   const [students, setStudents] = useState([]);
@@ -32,6 +73,8 @@ function AdminDashboard() {
   const [moodleAttendanceRecordsLoaded, setMoodleAttendanceRecordsLoaded] = useState(false);
   const [moodleAttendanceRecordsLoading, setMoodleAttendanceRecordsLoading] = useState(false);
   const [chatInsights, setChatInsights] = useState(null);
+  const [syncingMoodleStudents, setSyncingMoodleStudents] = useState(false);
+  const [moodleSyncResult, setMoodleSyncResult] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,6 +84,12 @@ function AdminDashboard() {
     }
     loadData();
   }, [navigate]);
+
+  useEffect(() => {
+    if (activeTab === "overview" && !moodleAttendanceRecordsLoaded && !moodleAttendanceRecordsLoading) {
+      loadMoodleAttendanceRecords();
+    }
+  }, [activeTab]);
 
   function loadData() {
     fetch("/api/units").then(r => r.json()).then(setUnits);
@@ -115,6 +164,38 @@ function AdminDashboard() {
   async function deleteStudent(id) {
     await fetch(`/api/students/${id}`, { method: "DELETE" });
     loadData();
+  }
+
+  async function syncStudentsFromMoodle() {
+    setSyncingMoodleStudents(true);
+    setMoodleSyncResult(null);
+    try {
+      const res = await fetch("/api/moodle/students");
+      const moodleList = await res.json();
+      // Dedupe by email — a student enrolled in several Moodle courses appears once per course.
+      const byEmail = new Map();
+      moodleList.forEach(m => { if (m.email && !byEmail.has(m.email)) byEmail.set(m.email, m); });
+
+      const existingEmails = new Set(students.map(s => s.email));
+      const toCreate = [...byEmail.values()].filter(m => !existingEmails.has(m.email));
+
+      let created = 0;
+      for (const m of toCreate) {
+        const res = await fetch("/api/students", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: m.name, email: m.email, unitCodes: [] })
+        });
+        const data = await res.json();
+        if (data.success) created++;
+      }
+      setMoodleSyncResult({ ok: true, message: `Synced ${created} new student${created === 1 ? "" : "s"} from Moodle (${byEmail.size} total enrolled, ${byEmail.size - created} already existed). Assign units to them below.` });
+      loadData();
+    } catch (err) {
+      setMoodleSyncResult({ ok: false, message: `Couldn't reach Moodle: ${err.message}` });
+    } finally {
+      setSyncingMoodleStudents(false);
+    }
   }
 
   function startEdit(student) {
@@ -214,6 +295,37 @@ function AdminDashboard() {
     return s ? s.name : "Unknown";
   }
 
+  const ATTENDANCE_RISK_THRESHOLD = 75; // below this %, flag as at-risk
+
+  // Prefers real Moodle attendance (matched by email) when it's been loaded;
+  // falls back to locally-recorded attendance for that student otherwise.
+  function studentStanding(student) {
+    const moodleRecords = moodleAttendanceRecordsLoaded
+      ? moodleAttendanceRecords.filter(r => r.student_email === student.email)
+      : [];
+    const localRecords = attendance.filter(a => a.studentId === student.id);
+
+    const source = moodleRecords.length > 0 ? "moodle" : (localRecords.length > 0 ? "local" : "none");
+    const records = source === "moodle" ? moodleRecords : localRecords;
+
+    if (source === "none") {
+      return { source, rate: null, total: 0, present: 0, label: "No attendance data yet", tone: "neutral" };
+    }
+
+    const total = records.length;
+    const present = records.filter(r => r.status === "Present").length;
+    const rate = Math.round((present / total) * 100);
+    const atRisk = rate < ATTENDANCE_RISK_THRESHOLD;
+    return {
+      source,
+      rate,
+      total,
+      present,
+      label: atRisk ? "At risk — low attendance" : "Good standing",
+      tone: atRisk ? "risk" : "good"
+    };
+  }
+
   const selectedAttendanceStudent = students.find(s => s.id === Number(newAttendance.studentId));
   const weeklyStudent = students.find(s => s.id === Number(weeklyStudentId));
   const unitsWithSessions = new Set(timetableSessions.map(t => t.unitCode));
@@ -246,7 +358,7 @@ function AdminDashboard() {
   }
 
   return (
-    <div style={{ fontFamily: "Arial, sans-serif", background: "#f0f2f5", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "Arial, sans-serif", background: "#f0f2f5", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
 
       <div style={{ background: "white", borderBottom: "1px solid #e0e0e0", padding: "16px 30px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -267,12 +379,13 @@ function AdminDashboard() {
       <div style={{ background: "#0f2a52", padding: "0 30px", display: "flex", gap: 4, flexWrap: "wrap" }}>
         {[
           { id: "insights", label: "Chatbot Insights" },
+          { id: "overview", label: "Student Overview" },
           { id: "moodle", label: "Moodle Live Data" },
           { id: "units", label: "Manage Units" },
           { id: "students", label: "Manage Students" },
           { id: "attendance", label: "Attendance" },
           { id: "assessments", label: "Assessments" },
-          { id: "timetable", label: "Timetable" }
+          { id: "timetable", label: "Class Schedule" }
         ].map(t => (
           <button
             key={t.id}
@@ -289,7 +402,7 @@ function AdminDashboard() {
         ))}
       </div>
 
-      <div style={{ padding: 30, maxWidth: 950, margin: "0 auto" }}>
+      <div style={{ padding: 30, maxWidth: 1000, margin: "0 auto", flex: 1, width: "100%", boxSizing: "border-box" }}>
 
         {activeTab === "insights" && (
           <div>
@@ -419,7 +532,27 @@ function AdminDashboard() {
 
         {activeTab === "students" && (
           <div>
-            <div style={{ fontSize: 20, fontWeight: "bold", color: "#0f2a52", marginBottom: 16 }}>Students</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+              <div style={{ fontSize: 20, fontWeight: "bold", color: "#0f2a52" }}>Students</div>
+              <button
+                onClick={syncStudentsFromMoodle}
+                disabled={syncingMoodleStudents}
+                style={{ padding: "9px 18px", background: "#e8a020", color: "white", border: "none", borderRadius: 20, fontSize: 12.5, fontWeight: "bold", cursor: syncingMoodleStudents ? "default" : "pointer", opacity: syncingMoodleStudents ? 0.6 : 1 }}
+              >
+                {syncingMoodleStudents ? "Syncing..." : `↻ Sync students from Moodle${moodleStudents.length ? ` (${new Set(moodleStudents.map(m => m.email)).size} enrolled)` : ""}`}
+              </button>
+            </div>
+
+            {moodleSyncResult && (
+              <div style={{
+                background: moodleSyncResult.ok ? "#eafaf0" : "#fdeeee",
+                border: `1px solid ${moodleSyncResult.ok ? "#bfe8cf" : "#f5c2c2"}`,
+                color: moodleSyncResult.ok ? "#1b7f3a" : "#a12d2d",
+                borderRadius: 8, padding: "10px 14px", fontSize: 12.5, marginBottom: 16
+              }}>
+                {moodleSyncResult.message}
+              </div>
+            )}
 
             <div style={{ background: "white", padding: 16, borderRadius: 8, marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
               <div style={{ fontSize: 13, fontWeight: "bold", marginBottom: 10, color: "#555" }}>Add New Student</div>
@@ -428,16 +561,9 @@ function AdminDashboard() {
               <input placeholder="Student ID (auto-generated if blank)" value={newStudent.studentId} onChange={e => setNewStudent({ ...newStudent, studentId: e.target.value })} style={{ ...inputStyle, width: 220 }} />
               <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 2 }}>Joining Date</label>
               <input type="date" value={newStudent.joiningDate} onChange={e => setNewStudent({ ...newStudent, joiningDate: e.target.value })} style={inputStyle} />
-              <div style={{ display: "inline-block", verticalAlign: "top" }}>
-                <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 2 }}>Units (ctrl/cmd-click for multiple)</label>
-                <select
-                  multiple
-                  value={newStudent.unitCodes}
-                  onChange={e => setNewStudent({ ...newStudent, unitCodes: Array.from(e.target.selectedOptions, o => o.value) })}
-                  style={{ ...inputStyle, height: 90, width: 160 }}
-                >
-                  {units.map(u => <option key={u.code} value={u.code}>{u.code} — {u.name}</option>)}
-                </select>
+              <div style={{ display: "inline-block", verticalAlign: "top", marginBottom: 8 }}>
+                <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 4 }}>Units — click to add/remove</label>
+                <UnitTogglePicker units={units} selected={newStudent.unitCodes} onChange={codes => setNewStudent({ ...newStudent, unitCodes: codes })} />
               </div>
               <button onClick={addStudent} style={{ padding: "9px 18px", background: "#0f2a52", color: "white", border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer", verticalAlign: "top" }}>
                 Add Student
@@ -480,14 +606,7 @@ function AdminDashboard() {
                           <input value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} style={{ ...inputStyle, width: 160, margin: 0 }} />
                         </td>
                         <td style={tdStyle}>
-                          <select
-                            multiple
-                            value={editForm.unitCodes}
-                            onChange={e => setEditForm({ ...editForm, unitCodes: Array.from(e.target.selectedOptions, o => o.value) })}
-                            style={{ ...inputStyle, margin: 0, height: 70, width: 140 }}
-                          >
-                            {units.map(u => <option key={u.code} value={u.code}>{u.code}</option>)}
-                          </select>
+                          <UnitTogglePicker units={units} selected={editForm.unitCodes} onChange={codes => setEditForm({ ...editForm, unitCodes: codes })} compact />
                           {unitsWithoutTimetable(editForm.unitCodes).length > 0 && (
                             <div style={{ fontSize: 10.5, color: "#a15c00", background: "#fff3cd", border: "1px solid #ffe69c", borderRadius: 6, padding: "4px 6px", marginTop: 4, maxWidth: 140 }}>
                               Note: {unitsWithoutTimetable(editForm.unitCodes).join(", ")} {unitsWithoutTimetable(editForm.unitCodes).length === 1 ? "has" : "have"} no timetable sessions yet.
@@ -810,6 +929,67 @@ function AdminDashboard() {
           </div>
         )}
 
+        {activeTab === "overview" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, flexWrap: "wrap", gap: 10 }}>
+              <div style={{ fontSize: 20, fontWeight: "bold", color: "#0f2a52" }}>Student Overview</div>
+              <button
+                onClick={loadMoodleAttendanceRecords}
+                disabled={moodleAttendanceRecordsLoading}
+                style={{ padding: "8px 16px", background: "#0f2a52", color: "white", border: "none", borderRadius: 18, fontSize: 12, fontWeight: "bold", cursor: moodleAttendanceRecordsLoading ? "default" : "pointer", opacity: moodleAttendanceRecordsLoading ? 0.6 : 1 }}
+              >
+                {moodleAttendanceRecordsLoading ? "Loading Moodle attendance..." : "↻ Refresh from Moodle"}
+              </button>
+            </div>
+            <div style={{ fontSize: 12.5, color: "#888", marginBottom: 20 }}>
+              Standing is based on real Moodle attendance when available (matched by email), falling back to locally-recorded attendance otherwise. Students below {ATTENDANCE_RISK_THRESHOLD}% attendance are flagged at-risk.
+            </div>
+
+            {students.length === 0 && (
+              <div style={{ background: "white", borderRadius: 8, padding: 24, fontSize: 13, color: "#888", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                No students yet — add one in Manage Students, or sync from Moodle there.
+              </div>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
+              {students.map(s => {
+                const standing = studentStanding(s);
+                const toneColors = {
+                  good: { bg: "#eafaf0", border: "#bfe8cf", fg: "#1b7f3a", badge: "✓" },
+                  risk: { bg: "#fdeeee", border: "#f5c2c2", fg: "#a12d2d", badge: "⚠" },
+                  neutral: { bg: "#f4f5f8", border: "#e3e5ec", fg: "#888", badge: "–" }
+                };
+                const c = toneColors[standing.tone];
+                return (
+                  <div key={s.id} style={{ background: "white", borderRadius: 10, padding: "16px 18px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", borderTop: `4px solid ${c.fg}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                      <div>
+                        <div style={{ fontSize: 14.5, fontWeight: "bold", color: "#222" }}>{s.name}</div>
+                        <div style={{ fontSize: 11.5, color: "#999", marginTop: 2 }}>{s.studentId || "—"} · {s.email}</div>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ background: c.bg, color: c.fg, border: `1px solid ${c.border}`, borderRadius: 14, padding: "3px 10px", fontSize: 11.5, fontWeight: "bold" }}>
+                        {c.badge} {standing.label}
+                      </span>
+                    </div>
+                    <div style={{ marginTop: 10, fontSize: 12, color: "#666" }}>
+                      {standing.rate !== null ? (
+                        <>Attendance: <strong>{standing.rate}%</strong> ({standing.present}/{standing.total} sessions, {standing.source === "moodle" ? "live Moodle data" : "locally recorded"})</>
+                      ) : (
+                        "No attendance records marked yet."
+                      )}
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: 12, color: "#666" }}>
+                      Units: {(s.unitCodes && s.unitCodes.length) ? s.unitCodes.join(", ") : "None assigned"}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {activeTab === "moodle" && (
           <div>
             <div style={{ fontSize: 20, fontWeight: "bold", color: "#0f2a52", marginBottom: 16 }}>Moodle Live Data</div>
@@ -978,6 +1158,10 @@ function AdminDashboard() {
             </div>
           </div>
         )}
+      </div>
+
+      <div style={{ borderTop: "1px solid #e4e7ee", padding: "16px 30px", textAlign: "center", fontSize: 12, color: "#9aa0ae" }}>
+        CIHE SmartAssist · Admin Console · Powered by a locally-run RAG chatbot over your Moodle content
       </div>
     </div>
   );
