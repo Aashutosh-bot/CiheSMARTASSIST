@@ -260,6 +260,10 @@ function AdminDashboard() {
         </button>
       </div>
 
+      <style>{`
+        .sa-admin-tab { transition: background 0.15s ease, border-color 0.15s ease; }
+        .sa-admin-tab:hover { background: rgba(255,255,255,0.08); border-bottom-color: rgba(232,160,32,0.5) !important; }
+      `}</style>
       <div style={{ background: "#0f2a52", padding: "0 30px", display: "flex", gap: 4, flexWrap: "wrap" }}>
         {[
           { id: "insights", label: "Chatbot Insights" },
@@ -272,6 +276,7 @@ function AdminDashboard() {
         ].map(t => (
           <button
             key={t.id}
+            className="sa-admin-tab"
             onClick={() => setActiveTab(t.id)}
             style={{
               background: "transparent", border: "none", color: "white", padding: "12px 20px", fontSize: 13, cursor: "pointer",

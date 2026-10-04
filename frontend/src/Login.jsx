@@ -139,26 +139,42 @@ function Login() {
   }
 
   return (
-    <div style={{ fontFamily: "Arial, sans-serif", background: "#0f2a52", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ fontFamily: "'Segoe UI', Arial, sans-serif", background: "#f7f8fc", minHeight: "100vh", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
+      <style>{`
+        @keyframes sa-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .sa-hero-icon { animation: sa-float 3.5s ease-in-out infinite; }
+        .sa-btn-primary { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+        .sa-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(79,70,229,0.35); }
+        .sa-btn-outline { transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease; }
+        .sa-btn-outline:hover { background: #f1f1f8; border-color: #4f46e5; color: #4f46e5; transform: translateY(-1px); }
+        .sa-chip { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+        .sa-chip:hover { transform: translateY(-3px); box-shadow: 0 8px 18px rgba(15,42,82,0.08); }
+      `}</style>
+
+      {/* SOFT BACKGROUND BLOBS */}
+      <div style={{ position: "absolute", top: -120, right: -100, width: 380, height: 380, borderRadius: "50%", background: "radial-gradient(circle, rgba(79,70,229,0.14), transparent 70%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: -140, left: -120, width: 420, height: 420, borderRadius: "50%", background: "radial-gradient(circle, rgba(232,160,32,0.12), transparent 70%)", pointerEvents: "none" }} />
 
       {/* MINIMAL TOP BAR */}
-      <div style={{ padding: "22px 36px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ padding: "22px 36px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", zIndex: 1 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 38, height: 38, background: "#e8a020", color: "#0f2a52", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+          <div style={{ width: 38, height: 38, background: "#0f2a52", color: "white", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
             🤖
           </div>
-          <span style={{ color: "white", fontWeight: "bold", fontSize: 16, letterSpacing: 0.3 }}>CIHE SmartAssist</span>
+          <span style={{ color: "#0f2a52", fontWeight: "bold", fontSize: 16, letterSpacing: 0.3 }}>CIHE SmartAssist</span>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button
+            className="sa-btn-outline"
             onClick={() => openModal("student")}
-            style={{ background: "transparent", color: "white", padding: "9px 20px", border: "1.5px solid rgba(255,255,255,0.4)", borderRadius: 24, fontWeight: "bold", fontSize: 13, cursor: "pointer" }}
+            style={{ background: "white", color: "#0f2a52", padding: "9px 20px", border: "1.5px solid #dfe2ea", borderRadius: 24, fontWeight: "bold", fontSize: 13, cursor: "pointer" }}
           >
             Student Login
           </button>
           <button
+            className="sa-btn-primary"
             onClick={() => openModal("admin")}
-            style={{ background: "#e8a020", color: "white", padding: "9px 20px", border: "none", borderRadius: 24, fontWeight: "bold", fontSize: 13, cursor: "pointer" }}
+            style={{ background: "#4f46e5", color: "white", padding: "9px 20px", border: "none", borderRadius: 24, fontWeight: "bold", fontSize: 13, cursor: "pointer" }}
           >
             Admin Login
           </button>
@@ -166,26 +182,39 @@ function Login() {
       </div>
 
       {/* CENTERED CHAT-FIRST HERO */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px 24px" }}>
-        <div style={{ textAlign: "center", maxWidth: 640 }}>
-          <div style={{ fontSize: 56, marginBottom: 18 }}>💬</div>
-          <div style={{ fontSize: 34, fontWeight: "bold", color: "white", marginBottom: 14, lineHeight: 1.25 }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px 24px", position: "relative", zIndex: 1 }}>
+        <div style={{ textAlign: "center", maxWidth: 620 }}>
+          <div className="sa-hero-icon" style={{ fontSize: 50, marginBottom: 16, display: "inline-block" }}>💬</div>
+          <div style={{ fontSize: 36, fontWeight: "bold", color: "#0f2a52", marginBottom: 14, lineHeight: 1.25 }}>
             Your AI campus assistant, on call 24/7
           </div>
-          <div style={{ fontSize: 15, color: "#cbd5e1", lineHeight: 1.7, marginBottom: 34 }}>
+          <div style={{ fontSize: 15, color: "#636b7a", lineHeight: 1.7, marginBottom: 30 }}>
             Ask SmartAssist about fees, enrolment, attendance, assignments, and more — get instant,
             accurate answers pulled straight from CIHE's own records.
           </div>
           <button
+            className="sa-btn-primary"
             onClick={() => openModal("student")}
-            style={{ background: "#e8a020", color: "white", padding: "15px 38px", border: "none", borderRadius: 28, fontWeight: "bold", fontSize: 15, cursor: "pointer" }}
+            style={{ background: "#4f46e5", color: "white", padding: "15px 38px", border: "none", borderRadius: 28, fontWeight: "bold", fontSize: 15, cursor: "pointer", marginBottom: 34 }}
           >
             Sign in to start chatting
           </button>
+
+          <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+            {[
+              { icon: "⚡", label: "Instant answers" },
+              { icon: "🔒", label: "Your data, secured" },
+              { icon: "🔄", label: "Always up to date" },
+            ].map((f, i) => (
+              <div key={i} className="sa-chip" style={{ background: "white", border: "1px solid #edeff5", borderRadius: 20, padding: "9px 16px", fontSize: 12.5, color: "#44485a", display: "flex", alignItems: "center", gap: 7 }}>
+                <span>{f.icon}</span>{f.label}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div style={{ textAlign: "center", padding: "16px", fontSize: 11.5, color: "#7e93b3" }}>
+      <div style={{ textAlign: "center", padding: "16px", fontSize: 11.5, color: "#9aa0ac", position: "relative", zIndex: 1 }}>
         © 2026 Crown Institute of Higher Education
       </div>
 

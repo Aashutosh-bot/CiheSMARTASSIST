@@ -2,26 +2,49 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AttendanceReport from "./AttendanceReport";
 import ChatPanel from "./ChatPanel";
-import { WEEKDAYS, SEMESTERS, SEMESTER_OPTIONS, ALL_UNITS, buildWeeks, addDays, formatWeekRange, formatDMY, todayStr, weekdayIndex } from "./scheduleUtils";
+import { SEMESTER_OPTIONS, ALL_UNITS } from "./scheduleUtils";
 
 const NAVY = "#0f2a52";
-const NAVY_LIGHT = "#1c3f6e";
+const ACCENT = "#4f46e5";
 const GOLD = "#e8a020";
 
 const sidebarNavItems = [
-  { id: "chat", label: "AI Chat", icon: "💬" },
-  { id: "dashboard", label: "Overview", icon: "🏠" },
-  { id: "profile", label: "My Profile", icon: "👤" },
-  { id: "courses", label: "My Courses", icon: "📚" },
-  { id: "assessments", label: "Assessments", icon: "📝" },
-  { id: "timetable", label: "Timetable", icon: "📅" },
-  { id: "attendance", label: "Attendance", icon: "✅" },
-  { id: "moodle", label: "My Moodle", icon: "🧩" }
+  { id: "chat", label: "AI Chat" },
+  { id: "dashboard", label: "Overview" },
+  { id: "profile", label: "My Profile" },
+  { id: "courses", label: "My Courses" },
+  { id: "assessments", label: "Assessments" },
+  { id: "attendance", label: "Attendance" },
+  { id: "moodle", label: "My Moodle" }
 ];
+
+function NavIcon({ id }) {
+  const common = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" };
+  switch (id) {
+    case "chat":
+      return <svg {...common}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" /></svg>;
+    case "dashboard":
+      return <svg {...common}><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /><path d="M9 21v-6h6v6" /></svg>;
+    case "profile":
+      return <svg {...common}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" /></svg>;
+    case "courses":
+      return <svg {...common}><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5V5.5Z" /><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20" /></svg>;
+    case "assessments":
+      return <svg {...common}><rect x="6" y="4" width="12" height="17" rx="2" /><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" /><path d="m9 12 2 2 4-4" /></svg>;
+    case "attendance":
+      return <svg {...common}><circle cx="12" cy="12" r="9" /><path d="m8.5 12.5 2.3 2.3L16 10" /></svg>;
+    case "moodle":
+      return <svg {...common}><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 13 9 5 9-5" /></svg>;
+    case "logout":
+      return <svg {...common}><path d="M12 3v8" /><path d="M18.4 6.6a8 8 0 1 1-12.8 0" /></svg>;
+    default:
+      return null;
+  }
+}
 
 function IconBox({ bg, size = 48, fontSize = 22, children }) {
   return (
-    <div style={{ width: size, height: size, borderRadius: 12, background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize, flexShrink: 0 }}>
+    <div className="sa-iconbox" style={{ width: size, height: size, borderRadius: 12, background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize, flexShrink: 0, transition: "transform 0.2s ease" }}>
       {children}
     </div>
   );
@@ -48,8 +71,6 @@ function Dashboard() {
   const [myProfile, setMyProfile] = useState(null);
   const [allUnits, setAllUnits] = useState([]);
   const [timetableSessions, setTimetableSessions] = useState([]);
-  const [selectedSemester, setSelectedSemester] = useState("");
-  const [selectedWeekStart, setSelectedWeekStart] = useState("");
   const [attendanceUnitCode, setAttendanceUnitCode] = useState("");
   const [attendanceSemester, setAttendanceSemester] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -126,11 +147,11 @@ function Dashboard() {
 
   const unitDecoration = {
     "ICT307": { color: NAVY, schedule: "Mon 10 AM - 12 PM" },
-    "ICT301": { color: "#1c6fd6", schedule: "Tue 1 PM - 3 PM" },
+    "ICT301": { color: ACCENT, schedule: "Tue 1 PM - 3 PM" },
     "ICT305": { color: GOLD, schedule: "Wed 9 AM - 11 AM" },
     "ICT210": { color: "#6c757d", schedule: "Thu 2 PM - 4 PM" }
   };
-  const decorationPalette = [NAVY, "#1c6fd6", GOLD, "#6c757d"];
+  const decorationPalette = [NAVY, ACCENT, GOLD, "#6c757d"];
   const myUnitCodes = (myProfile && myProfile.unitCodes) || [];
   const courses = allUnits
     .filter(u => myUnitCodes.includes(u.code))
@@ -151,129 +172,75 @@ function Dashboard() {
 
   const todayFormatted = new Date().toLocaleDateString("en-AU", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-  const activeSemester = selectedSemester || SEMESTER_OPTIONS[1];
-  const weekOptions = buildWeeks(SEMESTERS[activeSemester].start, SEMESTERS[activeSemester].end);
-  const activeWeek = weekOptions.find(w => w.start === selectedWeekStart) || weekOptions[0];
-
   const activeAttendanceUnit = attendanceUnitCode || myUnitCodes[0] || "";
   const activeAttendanceSemester = attendanceSemester || SEMESTER_OPTIONS[1];
-  const today = todayStr();
 
   function unitLabel(code) {
     const u = allUnits.find(x => x.code === code);
     return u ? `${u.code} — ${u.name}` : code;
   }
 
-  function renderWeeklyTimetable() {
-    if (!activeWeek) return <div style={{ fontSize: 13, color: "#888" }}>No weeks available.</div>;
-    return (
-      <div>
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
-          <div>
-            <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 4 }}>Semester</label>
-            <select value={activeSemester} onChange={e => setSelectedSemester(e.target.value)} style={{ padding: 9, border: "1px solid #ccc", borderRadius: 6, fontSize: 13 }}>
-              {SEMESTER_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 4 }}>Week</label>
-            <select value={activeWeek.start} onChange={e => setSelectedWeekStart(e.target.value)} style={{ padding: 9, border: "1px solid #ccc", borderRadius: 6, fontSize: 13 }}>
-              {weekOptions.map(w => <option key={w.start} value={w.start}>{formatWeekRange(w)}</option>)}
-            </select>
-          </div>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 12 }}>
-          {WEEKDAYS.map((wd, idx) => {
-            const dateStr = addDays(activeWeek.start, idx);
-            const daySessions = timetableSessions.filter(t =>
-              t.dayOfWeek === wd && myUnitCodes.includes(t.unitCode) && t.semester === activeSemester
-            );
-            return (
-              <div key={wd} style={{ minWidth: 0 }}>
-                <div style={{ background: NAVY, color: "white", fontWeight: "bold", fontSize: 12, textAlign: "center", padding: "8px 4px", borderRadius: "6px 6px 0 0" }}>
-                  {wd}
-                  <div style={{ fontWeight: "normal", fontSize: 10, color: "#cbd5e1" }}>{formatDMY(dateStr)}</div>
-                </div>
-                <div style={{ background: "white", border: "1px solid #e0e0e0", borderTop: "none", borderRadius: "0 0 6px 6px", minHeight: 120, padding: 8, display: "flex", flexDirection: "column", gap: 8 }}>
-                  {daySessions.length === 0 && (
-                    <div style={{ fontSize: 12, color: "#aaa", textAlign: "center", marginTop: 20 }}>NC</div>
-                  )}
-                  {daySessions.map(s => (
-                    <div key={s.id} style={{ background: "#f5f7fa", borderRadius: 6, padding: 8, fontSize: 11, lineHeight: 1.5 }}>
-                      <div style={{ fontWeight: "bold", color: NAVY }}>{unitLabel(s.unitCode)}</div>
-                      <div>👤 {s.teacher || "TBA"}</div>
-                      <div>🏷️ {s.mode || "—"}</div>
-                      <div>🏫 {s.room || "—"}{s.location ? `, ${s.location}` : ""}</div>
-                      <div>🕐 {s.startTime} - {s.endTime}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
   const cardStyle = { background: "white", borderRadius: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" };
-
-  let upcomingClassesCount = 0;
-  for (let i = 0; i < 7; i++) {
-    const dateStr = addDays(today, i);
-    if (dateStr > SEMESTERS[SEMESTER_OPTIONS[1]].end) break;
-    const wd = WEEKDAYS[weekdayIndex(dateStr)];
-    upcomingClassesCount += timetableSessions.filter(t => myUnitCodes.includes(t.unitCode) && t.dayOfWeek === wd).length;
-  }
 
   const statCards = [
     { label: "Enrolled Courses", value: courses.length, icon: "📚", bg: NAVY, onView: () => goTo("courses") },
     { label: "Assessments Due", value: allAssessments.length, icon: "📝", bg: GOLD, onView: () => goTo("assessments") },
-    { label: "Upcoming Classes", value: upcomingClassesCount, icon: "🗓️", bg: "#1c6fd6", onView: () => goTo("timetable") }
+    { label: "Unread Notifications", value: notifications.filter(n => !n.read).length, icon: "🔔", bg: ACCENT, onView: toggleNotifications }
   ];
 
   return (
-    <div style={{ fontFamily: "Arial, sans-serif", background: "#f0f2f5", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ fontFamily: "'Segoe UI', Arial, sans-serif", background: "#f5f6fa", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <style>{`
+        .sa-navitem { transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease; }
+        .sa-navitem:hover { background: #eef0fe; color: ${ACCENT}; transform: translateX(2px); }
+        .sa-navitem:hover .sa-navicon { color: ${ACCENT}; transform: scale(1.14); }
+        .sa-navitem.active { background: #eef0fe; color: ${ACCENT}; font-weight: bold; }
+        .sa-navitem.active .sa-navicon { color: ${ACCENT}; }
+        .sa-navicon { transition: transform 0.15s ease, color 0.15s ease; display: flex; }
+        .sa-logout:hover { background: #fdeeee; color: #dc3545 !important; }
+        .sa-card { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+        .sa-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(15,42,82,0.1); }
+        .sa-card:hover .sa-iconbox { transform: scale(1.1) rotate(-4deg); }
+      `}</style>
       <div style={{ display: "flex", flex: 1, alignItems: "stretch" }}>
 
         {/* LEFT SIDEBAR */}
         <div style={{
-          width: sidebarOpen ? 250 : 0, flexShrink: 0, overflow: "hidden",
+          width: sidebarOpen ? 240 : 0, flexShrink: 0, overflow: "hidden",
           position: "sticky", top: 0, alignSelf: "flex-start", height: "100vh",
           transition: "width 0.25s ease"
         }}>
           <div style={{
-            width: 250, height: "100%", background: NAVY, color: "white",
-            display: "flex", flexDirection: "column", overflowY: "auto"
+            width: 240, height: "100%", background: "white", color: "#44485a",
+            display: "flex", flexDirection: "column", overflowY: "auto", borderRight: "1px solid #ebedf1"
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "22px 20px", borderBottom: "1px solid rgba(255,255,255,0.12)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "20px" }}>
               <div style={{
-                width: 42, height: 42, borderRadius: "50%", border: `2px solid ${GOLD}`,
-                display: "flex", alignItems: "center", justifyContent: "center", color: GOLD, fontSize: 18, flexShrink: 0
+                width: 38, height: 38, borderRadius: 10, background: NAVY,
+                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0
               }}>
-                👑
+                🤖
               </div>
-              <div style={{ fontSize: 12, fontWeight: "bold", letterSpacing: 0.5, lineHeight: 1.35 }}>
-                CROWN INSTITUTE OF HIGHER EDUCATION
+              <div style={{ lineHeight: 1.2 }}>
+                <div style={{ fontSize: 14, fontWeight: "bold", color: NAVY }}>SmartAssist</div>
+                <div style={{ fontSize: 10.5, color: "#9aa0ac", letterSpacing: 0.3 }}>CIHE STUDENT PORTAL</div>
               </div>
             </div>
 
-            <div style={{ flex: 1, padding: "12px 0" }}>
+            <div style={{ flex: 1, padding: "8px 12px" }}>
               {sidebarNavItems.map(item => (
                 <div
                   key={item.id}
                   onClick={() => goTo(item.id)}
+                  className={`sa-navitem${activeTab === item.id ? " active" : ""}`}
                   style={{
-                    display: "flex", alignItems: "center", gap: 12, padding: "12px 20px",
-                    cursor: "pointer", fontSize: 13.5,
-                    background: activeTab === item.id ? NAVY_LIGHT : "transparent",
-                    borderLeft: activeTab === item.id ? `3px solid ${GOLD}` : "3px solid transparent",
-                    color: activeTab === item.id ? "white" : "#cbd5e1",
-                    fontWeight: activeTab === item.id ? "bold" : "normal"
+                    display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
+                    cursor: "pointer", fontSize: 13.5, borderRadius: 8, marginBottom: 2,
                   }}
                 >
-                  <span style={{ fontSize: 16, width: 20, textAlign: "center" }}>{item.icon}</span>
+                  <span className="sa-navicon">
+                    <NavIcon id={item.id} />
+                  </span>
                   {item.label}
                 </div>
               ))}
@@ -281,13 +248,14 @@ function Dashboard() {
 
             <div
               onClick={logout}
+              className="sa-logout"
               style={{
                 display: "flex", alignItems: "center", gap: 12, padding: "16px 20px",
-                cursor: "pointer", fontSize: 13.5, color: "#f5b3b3",
-                borderTop: "1px solid rgba(255,255,255,0.12)"
+                cursor: "pointer", fontSize: 13.5, color: "#8a8f9c",
+                borderTop: "1px solid #ebedf1", transition: "background 0.15s ease, color 0.15s ease"
               }}
             >
-              <span style={{ fontSize: 16, width: 20, textAlign: "center" }}>⏻</span>
+              <NavIcon id="logout" />
               Logout
             </div>
           </div>
@@ -427,11 +395,11 @@ function Dashboard() {
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20, marginBottom: 28 }}>
                   {statCards.map((s, i) => (
-                    <div key={i} style={{ ...cardStyle, padding: "20px 22px" }}>
+                    <div key={i} className="sa-card" style={{ ...cardStyle, padding: "20px 22px" }}>
                       <IconBox bg={s.bg}>{s.icon}</IconBox>
                       <div style={{ fontSize: 13, color: "#888", marginTop: 14 }}>{s.label}</div>
                       <div style={{ fontSize: 30, fontWeight: "bold", color: NAVY, marginTop: 2 }}>{s.value}</div>
-                      <div onClick={s.onView} style={{ fontSize: 12, color: "#1c6fd6", fontWeight: "bold", marginTop: 10, cursor: "pointer" }}>View all →</div>
+                      <div onClick={s.onView} style={{ fontSize: 12, color: ACCENT, fontWeight: "bold", marginTop: 10, cursor: "pointer" }}>View all →</div>
                     </div>
                   ))}
                 </div>
@@ -441,12 +409,13 @@ function Dashboard() {
                     <div style={{ ...cardStyle, padding: "22px 24px", marginBottom: 24 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
                         <div style={{ fontSize: 16, fontWeight: "bold", color: NAVY }}>My Courses</div>
-                        <div onClick={() => goTo("courses")} style={{ fontSize: 12.5, color: "#1c6fd6", fontWeight: "bold", cursor: "pointer" }}>View all</div>
+                        <div onClick={() => goTo("courses")} style={{ fontSize: 12.5, color: ACCENT, fontWeight: "bold", cursor: "pointer" }}>View all</div>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         {courses.map((c, i) => (
                           <div
                             key={i}
+                            className="sa-card"
                             onClick={() => openUnit(c)}
                             style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 8px", borderRadius: 8, cursor: "pointer", borderBottom: i < courses.length - 1 ? "1px solid #f0f0f0" : "none" }}
                           >
@@ -469,7 +438,7 @@ function Dashboard() {
                     <div style={{ ...cardStyle, padding: "22px 24px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
                         <div style={{ fontSize: 16, fontWeight: "bold", color: NAVY }}>Upcoming Assessments</div>
-                        <div onClick={() => goTo("assessments")} style={{ fontSize: 12.5, color: "#1c6fd6", fontWeight: "bold", cursor: "pointer" }}>View all</div>
+                        <div onClick={() => goTo("assessments")} style={{ fontSize: 12.5, color: ACCENT, fontWeight: "bold", cursor: "pointer" }}>View all</div>
                       </div>
                       {allAssessments.length === 0 && (
                         <div style={{ fontSize: 13, color: "#888" }}>No assessments posted yet.</div>
@@ -506,6 +475,7 @@ function Dashboard() {
                   {courses.map((c, i) => (
                     <div
                       key={i}
+                      className="sa-card"
                       onClick={() => openUnit(c)}
                       style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.07)", cursor: "pointer" }}
                     >
@@ -597,15 +567,6 @@ function Dashboard() {
                       ))}
                     </tbody>
                   </table>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "timetable" && (
-              <div>
-                <div style={{ fontSize: 22, fontWeight: "bold", color: NAVY, marginBottom: 20 }}>Timetable</div>
-                <div style={{ background: "white", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.07)", padding: 20 }}>
-                  {renderWeeklyTimetable()}
                 </div>
               </div>
             )}
