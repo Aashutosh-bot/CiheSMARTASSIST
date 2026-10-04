@@ -201,6 +201,17 @@ app.post("/api/set-password", (req, res) => {
   res.json({ success: true, name: student.name });
 });
 
+app.post("/api/change-password", (req, res) => {
+  const { email, currentPassword, newPassword } = req.body;
+  const student = students.find(s => s.email === email);
+  if (!student) return res.status(404).json({ success: false, message: "Student not found." });
+  if (student.password !== currentPassword) return res.status(401).json({ success: false, message: "Current password is incorrect." });
+  if (!newPassword || newPassword.length < 6) return res.status(400).json({ success: false, message: "New password must be at least 6 characters." });
+  student.password = newPassword;
+  saveData();
+  res.json({ success: true });
+});
+
 app.post("/api/login", (req, res) => {
   const { email, password } = req.body;
   const student = students.find(s => s.email === email && s.password === password);

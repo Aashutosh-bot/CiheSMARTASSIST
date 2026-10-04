@@ -58,6 +58,68 @@ function IconBox({ bg, size = 48, fontSize = 22, children }) {
   );
 }
 
+function ChangePasswordCard({ studentEmail }) {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [status, setStatus] = useState(null); // { ok: bool, message: string }
+  const [saving, setSaving] = useState(false);
+
+  function submit(e) {
+    e.preventDefault();
+    setStatus(null);
+    if (next.length < 6) {
+      setStatus({ ok: false, message: "New password must be at least 6 characters." });
+      return;
+    }
+    if (next !== confirm) {
+      setStatus({ ok: false, message: "New passwords don't match." });
+      return;
+    }
+    setSaving(true);
+    fetch("/api/change-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: studentEmail, currentPassword: current, newPassword: next }),
+    })
+      .then(r => r.json().then(data => ({ ok: r.ok, data })))
+      .then(({ ok, data }) => {
+        if (ok && data.success) {
+          setStatus({ ok: true, message: "Password updated." });
+          setCurrent(""); setNext(""); setConfirm("");
+        } else {
+          setStatus({ ok: false, message: data.message || "Couldn't update password." });
+        }
+      })
+      .catch(() => setStatus({ ok: false, message: "Couldn't reach the server." }))
+      .finally(() => setSaving(false));
+  }
+
+  const inputStyle = { width: "100%", padding: "9px 11px", border: "1px solid #dcdfe6", borderRadius: 8, fontSize: 13, boxSizing: "border-box" };
+
+  return (
+    <div style={{ background: "white", borderRadius: 14, boxShadow: "0 2px 10px rgba(16,24,64,0.06)", border: "1px solid #eef0f5", padding: 24 }}>
+      <div style={{ fontSize: 15, fontWeight: "bold", color: NAVY, marginBottom: 14 }}>Change Password</div>
+      <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <input type="password" placeholder="Current password" value={current} onChange={e => setCurrent(e.target.value)} style={inputStyle} required />
+        <input type="password" placeholder="New password" value={next} onChange={e => setNext(e.target.value)} style={inputStyle} required />
+        <input type="password" placeholder="Confirm new password" value={confirm} onChange={e => setConfirm(e.target.value)} style={inputStyle} required />
+        {status && (
+          <div style={{ fontSize: 12.5, color: status.ok ? "#1b7f3a" : "#a12d2d" }}>{status.message}</div>
+        )}
+        <button
+          type="submit"
+          disabled={saving}
+          className="sa-btn-primary"
+          style={{ background: ACCENT, color: "white", border: "none", borderRadius: 8, padding: "10px 0", fontSize: 13.5, fontWeight: "bold", cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1, marginTop: 4 }}
+        >
+          {saving ? "Updating..." : "Update Password"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 function daysUntil(dateStr) {
   const due = new Date(dateStr);
   const today = new Date();
@@ -408,17 +470,31 @@ function Dashboard() {
 
             {activeTab === "dashboard" && (
               <>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 26, flexWrap: "wrap", gap: 8 }}>
-                  <div>
-                    <div style={{ fontSize: 22, fontWeight: "bold", color: NAVY }}>Welcome back, {studentName}! 👋</div>
-                    <div style={{ color: "#888", fontSize: 14, marginTop: 4 }}>Here's what's happening with your course.</div>
+                <div style={{
+                  position: "relative", overflow: "hidden", borderRadius: 18, marginBottom: 28,
+                  background: `linear-gradient(135deg, ${NAVY} 0%, ${ACCENT} 100%)`,
+                  padding: "32px 34px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 18
+                }}>
+                  <div style={{ position: "absolute", top: -60, right: -40, width: 220, height: 220, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
+                  <div style={{ position: "absolute", bottom: -70, right: 120, width: 160, height: 160, borderRadius: "50%", background: "rgba(232,160,32,0.15)" }} />
+                  <div style={{ position: "relative", zIndex: 1 }}>
+                    <div style={{ fontSize: 24, fontWeight: "bold", color: "white" }}>Welcome back, {studentName}! 👋</div>
+                    <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, marginTop: 6 }}>{todayFormatted}</div>
                   </div>
-                  <div style={{ fontSize: 13, color: "#888", whiteSpace: "nowrap", marginTop: 4 }}>{todayFormatted}</div>
+                  <button
+                    onClick={() => goTo("chat")}
+                    className="sa-btn-primary"
+                    style={{ position: "relative", zIndex: 1, background: "white", color: NAVY, border: "none", borderRadius: 24, padding: "13px 26px", fontSize: 14, fontWeight: "bold", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}
+                  >
+                    💬 Ask SmartAssist
+                  </button>
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20, marginBottom: 28 }}>
                   {statCards.map((s, i) => (
-                    <div key={i} className="sa-card" style={{ ...cardStyle, padding: "20px 22px" }}>
+                    <div key={i} className="sa-card" style={{ ...cardStyle, padding: "20px 22px", position: "relative", overflow: "hidden" }}>
+                      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: s.bg }} />
+                      <div style={{ position: "absolute", top: -18, right: -18, width: 76, height: 76, borderRadius: "50%", background: s.bg, opacity: 0.08 }} />
                       <IconBox bg={s.bg}>{s.icon}</IconBox>
                       <div style={{ fontSize: 13, color: "#888", marginTop: 14 }}>{s.label}</div>
                       <div style={{ fontSize: 30, fontWeight: "bold", color: NAVY, marginTop: 2 }}>{s.value}</div>
@@ -596,7 +672,13 @@ function Dashboard() {
 
             {activeTab === "attendance" && (
               <div>
-                <div style={{ fontSize: 22, fontWeight: "bold", color: NAVY, marginBottom: 20 }}>Attendance</div>
+                <div style={{ fontSize: 22, fontWeight: "bold", color: NAVY, marginBottom: 8 }}>Attendance</div>
+                <div style={{ background: "#eef1fb", border: "1px solid #dbe1f7", borderRadius: 10, padding: "12px 16px", fontSize: 13, color: "#3b3f5c", marginBottom: 20, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 16 }}>ℹ️</span>
+                  <span>This is attendance recorded manually here in SmartAssist, separate from Moodle. For your real, live roll-marked attendance from Moodle, check the{" "}
+                    <span onClick={() => goTo("moodle")} style={{ color: ACCENT, fontWeight: "bold", cursor: "pointer" }}>My Moodle</span> tab.
+                  </span>
+                </div>
                 <div style={{ background: "white", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.07)", padding: 20 }}>
                   <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
                     <div>
@@ -646,6 +728,12 @@ function Dashboard() {
                 {moodleError && (
                   <div style={{ background: "#fdeeee", border: "1px solid #f5c2c2", color: "#a12d2d", borderRadius: 10, padding: "14px 18px", fontSize: 13.5, marginBottom: 24 }}>
                     ⚠ {moodleError}
+                  </div>
+                )}
+
+                {moodleLoaded && !moodleError && myMoodleSubmissions.length === 0 && myMoodleAttendance.length === 0 && (
+                  <div style={{ background: "#fff8e8", border: "1px solid #f3dfa3", color: "#8a6314", borderRadius: 10, padding: "14px 18px", fontSize: 13.5, marginBottom: 24 }}>
+                    ⚠ No Moodle records matched <strong>{studentEmail}</strong>. This tab only shows data for the email actually enrolled as a student in Moodle — if your SmartAssist login email is different from your Moodle email, log in with the matching one (or ask your admin to align them) and refresh.
                   </div>
                 )}
 
@@ -750,31 +838,84 @@ function Dashboard() {
                 {!myProfile ? (
                   <div style={{ ...cardStyle, padding: 24, fontSize: 13, color: "#888" }}>Loading profile...</div>
                 ) : (
-                  <div style={{ ...cardStyle, padding: 28, maxWidth: 560 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
-                      <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#e0e0e0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: "bold", color: "#333", flexShrink: 0 }}>
-                        {myProfile.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                  <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 24, alignItems: "start" }}>
+                    <div>
+                      <div style={{
+                        position: "relative", overflow: "hidden", borderRadius: 16,
+                        background: `linear-gradient(135deg, ${NAVY} 0%, ${ACCENT} 100%)`,
+                        padding: "28px 26px", marginBottom: 20, display: "flex", alignItems: "center", gap: 18
+                      }}>
+                        <div style={{ position: "absolute", top: -50, right: -30, width: 180, height: 180, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
+                        <div style={{ position: "relative", zIndex: 1, width: 64, height: 64, borderRadius: "50%", background: "rgba(255,255,255,0.18)", border: "2px solid rgba(255,255,255,0.5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: "bold", color: "white", flexShrink: 0 }}>
+                          {myProfile.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                        </div>
+                        <div style={{ position: "relative", zIndex: 1 }}>
+                          <div style={{ fontSize: 19, fontWeight: "bold", color: "white" }}>{myProfile.name}</div>
+                          <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.8)", marginTop: 3 }}>{myProfile.studentId || "—"} · {myProfile.email}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div style={{ fontSize: 17, fontWeight: "bold", color: NAVY }}>{myProfile.name}</div>
-                        <div style={{ fontSize: 12.5, color: "#888" }}>{myProfile.studentId || "—"}</div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
+                        <div className="sa-card" style={{ ...cardStyle, padding: "16px 14px", textAlign: "center" }}>
+                          <div style={{ fontSize: 22, fontWeight: "bold", color: NAVY }}>{courses.length}</div>
+                          <div style={{ fontSize: 11.5, color: "#888", marginTop: 3 }}>Enrolled Units</div>
+                        </div>
+                        <div className="sa-card" style={{ ...cardStyle, padding: "16px 14px", textAlign: "center" }}>
+                          <div style={{ fontSize: 22, fontWeight: "bold", color: GOLD }}>{allAssessments.length}</div>
+                          <div style={{ fontSize: 11.5, color: "#888", marginTop: 3 }}>Assessments Due</div>
+                        </div>
+                        <div className="sa-card" style={{ ...cardStyle, padding: "16px 14px", textAlign: "center" }}>
+                          <div style={{ fontSize: 22, fontWeight: "bold", color: ACCENT }}>{notifications.filter(n => !n.read).length}</div>
+                          <div style={{ fontSize: 11.5, color: "#888", marginTop: 3 }}>Unread Alerts</div>
+                        </div>
+                      </div>
+
+                      <div style={{ ...cardStyle, padding: 26 }}>
+                        <div style={{ fontSize: 15, fontWeight: "bold", color: NAVY, marginBottom: 16 }}>Account Details</div>
+                        <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", rowGap: 14, fontSize: 13.5 }}>
+                          <div style={{ color: "#888" }}>Student ID</div>
+                          <div style={{ color: "#222" }}>{myProfile.studentId || "—"}</div>
+                          <div style={{ color: "#888" }}>Full Name</div>
+                          <div style={{ color: "#222" }}>{myProfile.name}</div>
+                          <div style={{ color: "#888" }}>Email</div>
+                          <div style={{ color: "#222" }}>{myProfile.email}</div>
+                          <div style={{ color: "#888" }}>Course/Program</div>
+                          <div style={{ color: "#222" }}>Bachelor of Information Technology</div>
+                          <div style={{ color: "#888" }}>Enrolled Units</div>
+                          <div style={{ color: "#222" }}>
+                            {courses.length > 0 ? courses.map(c => `${c.code} — ${c.name}`).join(", ") : "No units enrolled"}
+                          </div>
+                          <div style={{ color: "#888" }}>Joining Date</div>
+                          <div style={{ color: "#222" }}>{myProfile.joiningDate || "—"}</div>
+                        </div>
                       </div>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", rowGap: 14, fontSize: 13.5 }}>
-                      <div style={{ color: "#888" }}>Student ID</div>
-                      <div style={{ color: "#222" }}>{myProfile.studentId || "—"}</div>
-                      <div style={{ color: "#888" }}>Full Name</div>
-                      <div style={{ color: "#222" }}>{myProfile.name}</div>
-                      <div style={{ color: "#888" }}>Email</div>
-                      <div style={{ color: "#222" }}>{myProfile.email}</div>
-                      <div style={{ color: "#888" }}>Course/Program</div>
-                      <div style={{ color: "#222" }}>Bachelor of Information Technology</div>
-                      <div style={{ color: "#888" }}>Enrolled Units</div>
-                      <div style={{ color: "#222" }}>
-                        {courses.length > 0 ? courses.map(c => `${c.code} — ${c.name}`).join(", ") : "No units enrolled"}
+
+                    <div>
+                      <div style={{ ...cardStyle, padding: 24, marginBottom: 20 }}>
+                        <div style={{ fontSize: 15, fontWeight: "bold", color: NAVY, marginBottom: 14 }}>Quick Links</div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          {[
+                            { id: "chat", label: "Ask SmartAssist", icon: "💬" },
+                            { id: "moodle", label: "My Moodle (live data)", icon: "🎓" },
+                            { id: "attendance", label: "Attendance record", icon: "📅" },
+                            { id: "courses", label: "My Courses", icon: "📚" },
+                          ].map(link => (
+                            <div
+                              key={link.id}
+                              className="sa-card"
+                              onClick={() => goTo(link.id)}
+                              style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13.5, color: "#333", fontWeight: 600 }}
+                            >
+                              <span style={{ fontSize: 16 }}>{link.icon}</span>
+                              <span style={{ flex: 1 }}>{link.label}</span>
+                              <span style={{ color: "#bbb" }}>›</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div style={{ color: "#888" }}>Joining Date</div>
-                      <div style={{ color: "#222" }}>{myProfile.joiningDate || "—"}</div>
+
+                      <ChangePasswordCard studentEmail={studentEmail} />
                     </div>
                   </div>
                 )}
