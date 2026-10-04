@@ -1,5 +1,6 @@
 import os
 import requests
+from datetime import datetime, timezone
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
@@ -7,40 +8,34 @@ load_dotenv()  # reads the .env file and makes its values available
 
 MOODLE_URL = os.getenv("MOODLE_URL")
 MOODLE_TOKEN = os.getenv("MOODLE_TOKEN")
-MOODLE_COURSE_ID = os.getenv("MOODLE_COURSE_ID")
+
+# Comma-separated list of course IDs, e.g. "10,11,12,13,14"
+_raw_course_ids = os.getenv("MOODLE_COURSE_IDS", "")
+MOODLE_COURSE_IDS = [c.strip() for c in _raw_course_ids.split(",") if c.strip()]
+
+# Accounts Moodle/MoodleCloud auto-creates that are not real students
+IGNORED_EMAILS = {"noreply@moodlecloud.com"}
 
 
-def fetch_moodle_pages():
-    """
-    Connects to Moodle, finds every 'Page' module in the configured course,
-    and returns a list of (source_name, clean_text) tuples ready for chunking.
-    Returns an empty list if Moodle is unreachable, so the rest of the app
-    keeps working even if the Moodle sandbox is down or reset.
-    """
-    if not MOODLE_TOKEN:
-        print("[moodle_loader] No MOODLE_TOKEN set in .env — skipping Moodle content.")
-        return []
-
+def _fetch_pages_for_course(course_id):
+    """Fetch every 'Page' module's clean text from a single Moodle course."""
     endpoint = f"{MOODLE_URL}/webservice/rest/server.php"
     params = {
         "wstoken": MOODLE_TOKEN,
         "wsfunction": "core_course_get_contents",
         "moodlewsrestformat": "json",
-        "courseid": MOODLE_COURSE_ID,
+        "courseid": course_id,
     }
 
     try:
         response = requests.get(endpoint, params=params, timeout=10)
         data = response.json()
     except Exception as e:
-        print(f"[moodle_loader] Could not reach Moodle: {e}")
+        print(f"[moodle_loader] Could not reach Moodle for course {course_id}: {e}")
         return []
 
-    # Moodle error responses come back as a dict with an "exception" or
-    # "errorcode" key (NOT always "error") — check broadly and print it
-    # so we can see exactly what went wrong instead of crashing later.
     if isinstance(data, dict):
-        print(f"[moodle_loader] Moodle returned an error response: {data}")
+        print(f"[moodle_loader] Moodle error for course {course_id}: {data}")
         return []
 
     results = []
@@ -56,8 +51,217 @@ def fetch_moodle_pages():
                 file_response = requests.get(file_url_with_token, timeout=10)
                 soup = BeautifulSoup(file_response.text, "html.parser")
                 clean_text = soup.get_text(separator=" ", strip=True)
-                source_name = f"moodle::{module.get('name')}"
+                source_name = f"moodle::course{course_id}::{module.get('name')}"
                 results.append((source_name, clean_text))
 
-    print(f"[moodle_loader] Fetched {len(results)} page(s) from Moodle")
     return results
+
+
+def fetch_moodle_pages():
+    """
+    Connects to Moodle and pulls every 'Page' module's content across ALL
+    configured courses (MOODLE_COURSE_IDS). Returns a list of
+    (source_name, clean_text) tuples ready for chunking.
+    Returns an empty list if Moodle is unreachable or no token/courses are
+    configured, so the rest of the app keeps working regardless.
+    """
+    if not MOODLE_TOKEN:
+        print("[moodle_loader] No MOODLE_TOKEN set in .env - skipping Moodle content.")
+        return []
+
+    if not MOODLE_COURSE_IDS:
+        print("[moodle_loader] No MOODLE_COURSE_IDS set in .env - skipping Moodle content.")
+        return []
+
+    all_results = []
+    for course_id in MOODLE_COURSE_IDS:
+        course_results = _fetch_pages_for_course(course_id)
+        print(f"[moodle_loader] Course {course_id}: fetched {len(course_results)} page(s)")
+        all_results.extend(course_results)
+
+    print(f"[moodle_loader] Total fetched: {len(all_results)} page(s) across {len(MOODLE_COURSE_IDS)} course(s)")
+    return all_results
+
+
+def fetch_moodle_assignments():
+    """
+    Returns a list of assignment dicts across all configured courses:
+    { "course_id": ..., "name": ..., "due_date": "YYYY-MM-DD", "max_grade": ... }
+    using the mod_assign_get_assignments Moodle function.
+    """
+    if not MOODLE_TOKEN or not MOODLE_COURSE_IDS:
+        print("[moodle_loader] Missing token or course IDs - skipping assignments.")
+        return []
+
+    endpoint = f"{MOODLE_URL}/webservice/rest/server.php"
+    params = {
+        "wstoken": MOODLE_TOKEN,
+        "wsfunction": "mod_assign_get_assignments",
+        "moodlewsrestformat": "json",
+    }
+    for i, course_id in enumerate(MOODLE_COURSE_IDS):
+        params[f"courseids[{i}]"] = course_id
+
+    try:
+        response = requests.get(endpoint, params=params, timeout=10)
+        data = response.json()
+    except Exception as e:
+        print(f"[moodle_loader] Could not fetch assignments: {e}")
+        return []
+
+    if isinstance(data, dict) and "exception" in data:
+        print(f"[moodle_loader] Moodle error fetching assignments: {data}")
+        return []
+
+    results = []
+    for course in data.get("courses", []):
+        course_id = course.get("id")
+        for assignment in course.get("assignments", []):
+            due_timestamp = assignment.get("duedate", 0)
+            if due_timestamp:
+                due_date = datetime.fromtimestamp(due_timestamp, tz=timezone.utc).strftime("%Y-%m-%d")
+            else:
+                due_date = None
+            results.append({
+                "course_id": course_id,
+                "name": assignment.get("name"),
+                "due_date": due_date,
+                "max_grade": assignment.get("grade"),
+            })
+
+    print(f"[moodle_loader] Fetched {len(results)} assignment(s)")
+    return results
+
+
+def fetch_moodle_enrolled_students():
+    """
+    Returns a list of enrolled student dicts across all configured courses:
+    { "course_id": ..., "student_id": ..., "name": ..., "email": ... }
+    using core_enrol_get_enrolled_users (one course per call).
+    Skips auto-created system accounts (e.g. MoodleCloud Support).
+    """
+    if not MOODLE_TOKEN or not MOODLE_COURSE_IDS:
+        print("[moodle_loader] Missing token or course IDs - skipping enrolled students.")
+        return []
+
+    endpoint = f"{MOODLE_URL}/webservice/rest/server.php"
+    all_results = []
+
+    for course_id in MOODLE_COURSE_IDS:
+        params = {
+            "wstoken": MOODLE_TOKEN,
+            "wsfunction": "core_enrol_get_enrolled_users",
+            "moodlewsrestformat": "json",
+            "courseid": course_id,
+        }
+
+        try:
+            response = requests.get(endpoint, params=params, timeout=10)
+            data = response.json()
+        except Exception as e:
+            print(f"[moodle_loader] Could not fetch enrolled users for course {course_id}: {e}")
+            continue
+
+        if isinstance(data, dict) and "exception" in data:
+            print(f"[moodle_loader] Moodle error for course {course_id}: {data}")
+            continue
+
+        for user in data:
+            email = user.get("email", "")
+            if email in IGNORED_EMAILS:
+                continue
+            all_results.append({
+                "course_id": course_id,
+                "student_id": user.get("id"),
+                "name": user.get("fullname"),
+                "email": email,
+            })
+
+    print(f"[moodle_loader] Fetched {len(all_results)} enrollment(s) across {len(MOODLE_COURSE_IDS)} course(s)")
+    return all_results
+
+
+def _get_attendance_instance_id(course_id):
+    """
+    Find the attendance activity's instance ID within a course.
+    Attendance sessions are looked up by this instance ID, not the course ID,
+    so we first read the course contents (same function Pages uses) and find
+    the module with modname == "attendance".
+    """
+    endpoint = f"{MOODLE_URL}/webservice/rest/server.php"
+    params = {
+        "wstoken": MOODLE_TOKEN,
+        "wsfunction": "core_course_get_contents",
+        "moodlewsrestformat": "json",
+        "courseid": course_id,
+    }
+    try:
+        response = requests.get(endpoint, params=params, timeout=10)
+        data = response.json()
+    except Exception as e:
+        print(f"[moodle_loader] Could not look up attendance activity for course {course_id}: {e}")
+        return None
+
+    if isinstance(data, dict):
+        return None
+
+    for section in data:
+        for module in section.get("modules", []):
+            if module.get("modname") == "attendance":
+                return module.get("instance")
+    return None
+
+
+def fetch_moodle_attendance_sessions():
+    """
+    Returns a list of attendance session dicts across all configured courses:
+    { "course_id": ..., "session_id": ..., "date": "YYYY-MM-DD", "description": ... }
+    using mod_attendance_get_sessions.
+    """
+    if not MOODLE_TOKEN or not MOODLE_COURSE_IDS:
+        print("[moodle_loader] Missing token or course IDs - skipping attendance.")
+        return []
+
+    endpoint = f"{MOODLE_URL}/webservice/rest/server.php"
+    all_results = []
+
+    for course_id in MOODLE_COURSE_IDS:
+        attendance_id = _get_attendance_instance_id(course_id)
+        if not attendance_id:
+            print(f"[moodle_loader] No attendance activity found for course {course_id}")
+            continue
+
+        params = {
+            "wstoken": MOODLE_TOKEN,
+            "wsfunction": "mod_attendance_get_sessions",
+            "moodlewsrestformat": "json",
+            "attendanceid": attendance_id,
+        }
+
+        try:
+            response = requests.get(endpoint, params=params, timeout=10)
+            data = response.json()
+        except Exception as e:
+            print(f"[moodle_loader] Could not fetch attendance sessions for course {course_id}: {e}")
+            continue
+
+        if isinstance(data, dict) and "exception" in data:
+            print(f"[moodle_loader] Moodle error for course {course_id} attendance: {data}")
+            continue
+
+        sessions = data if isinstance(data, list) else data.get("sessions", [])
+        for session in sessions:
+            sess_timestamp = session.get("sessdate", 0)
+            if sess_timestamp:
+                date = datetime.fromtimestamp(sess_timestamp, tz=timezone.utc).strftime("%Y-%m-%d")
+            else:
+                date = None
+            all_results.append({
+                "course_id": course_id,
+                "session_id": session.get("id"),
+                "date": date,
+                "description": session.get("description", ""),
+            })
+
+    print(f"[moodle_loader] Fetched {len(all_results)} attendance session(s) across {len(MOODLE_COURSE_IDS)} course(s)")
+    return all_results
