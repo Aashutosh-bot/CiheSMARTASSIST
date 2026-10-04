@@ -82,8 +82,8 @@ export default function AttendanceReport({ unitCode, enrolledUnitCodes, semester
   const codes = unitCode === ALL_UNITS ? (enrolledUnitCodes || []) : [unitCode];
   const { rows } = computeAttendanceReport(codes, semester, sessions, records);
 
-  const headerStyle = { background: "#eceef1", color: "#1a1d24", fontWeight: "bold", padding: "9px 10px", fontSize: 11.5, textAlign: "center", border: "1px solid #d3d7dd", whiteSpace: "nowrap" };
-  const cellStyle = (shaded) => ({ background: shaded ? "#f7f8fa" : "white", color: "#222", padding: "8px 10px", fontSize: 12, textAlign: "center", border: "1px solid #e2e5ea", whiteSpace: "nowrap" });
+  const headerStyle = { background: "#ece2d0", color: "#1a1d24", fontWeight: "bold", padding: "9px 10px", fontSize: 11.5, textAlign: "center", border: "1px solid #e3d9c6", whiteSpace: "nowrap" };
+  const cellStyle = (shaded) => ({ background: shaded ? "#f3ede1" : "#fffaf3", color: "#222", padding: "8px 10px", fontSize: 12, textAlign: "center", border: "1px solid #e3d9c6", whiteSpace: "nowrap" });
 
   return (
     <div>

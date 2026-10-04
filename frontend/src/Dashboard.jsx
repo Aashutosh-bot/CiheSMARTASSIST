@@ -4,9 +4,9 @@ import AttendanceReport from "./AttendanceReport";
 import ChatPanel from "./ChatPanel";
 import { SEMESTER_OPTIONS, ALL_UNITS } from "./scheduleUtils";
 
-const NAVY = "#0f2a52";
-const ACCENT = "#4f46e5";
-const GOLD = "#e8a020";
+const NAVY = "#1c2b3a";
+const ACCENT = "#bb5533";
+const GOLD = "#c2862a";
 
 const sidebarNavItems = [
   { id: "chat", label: "AI Chat" },
@@ -52,7 +52,7 @@ function NavIcon({ id }) {
 
 function IconBox({ bg, size = 48, fontSize = 22, children }) {
   return (
-    <div className="sa-iconbox" style={{ width: size, height: size, borderRadius: 12, background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize, flexShrink: 0, transition: "transform 0.2s ease" }}>
+    <div className="sa-iconbox" style={{ width: size, height: size, borderRadius: 12, background: bg, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize, flexShrink: 0, transition: "transform 0.2s ease" }}>
       {children}
     </div>
   );
@@ -98,7 +98,7 @@ function ChangePasswordCard({ studentEmail }) {
   const inputStyle = { width: "100%", padding: "9px 11px", border: "1px solid #dcdfe6", borderRadius: 8, fontSize: 13, boxSizing: "border-box" };
 
   return (
-    <div style={{ background: "white", borderRadius: 14, boxShadow: "0 2px 10px rgba(16,24,64,0.06)", border: "1px solid #eef0f5", padding: 24 }}>
+    <div style={{ background: "#fffaf3", borderRadius: 14, boxShadow: "0 2px 10px rgba(16,24,64,0.06)", border: "1px solid #eef0f5", padding: 24 }}>
       <div style={{ fontSize: 15, fontWeight: "bold", color: NAVY, marginBottom: 14 }}>Change Password</div>
       <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <input type="password" placeholder="Current password" value={current} onChange={e => setCurrent(e.target.value)} style={inputStyle} required />
@@ -263,29 +263,29 @@ function Dashboard() {
     return u ? `${u.code} — ${u.name}` : code;
   }
 
-  const cardStyle = { background: "white", borderRadius: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" };
+  const cardStyle = { background: "#fffaf3", borderRadius: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" };
 
   const statCards = [
-    { label: "Enrolled Courses", value: courses.length, icon: "📚", bg: NAVY, onView: () => goTo("courses") },
-    { label: "Assessments Due", value: allAssessments.length, icon: "📝", bg: GOLD, onView: () => goTo("assessments") },
-    { label: "Unread Notifications", value: notifications.filter(n => !n.read).length, icon: "🔔", bg: ACCENT, onView: toggleNotifications }
+    { label: "Enrolled Courses", value: courses.length, icon: <NavIcon id="courses" />, bg: NAVY, onView: () => goTo("courses") },
+    { label: "Assessments Due", value: allAssessments.length, icon: <NavIcon id="assessments" />, bg: GOLD, onView: () => goTo("assessments") },
+    { label: "Unread Notifications", value: notifications.filter(n => !n.read).length, icon: <NavIcon id="bell" />, bg: ACCENT, onView: toggleNotifications }
   ];
 
   return (
-    <div style={{ fontFamily: "'Segoe UI', Arial, sans-serif", background: "#f5f6fa", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ fontFamily: "'Segoe UI', Arial, sans-serif", background: "#f3ede1", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <style>{`
         .sa-navitem { transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease; }
-        .sa-navitem:hover { background: #eef0fe; color: ${ACCENT}; transform: translateX(2px); }
+        .sa-navitem:hover { background: #f3e2d6; color: ${ACCENT}; transform: translateX(2px); }
         .sa-navitem:hover .sa-navicon { color: ${ACCENT}; transform: scale(1.14); }
-        .sa-navitem.active { background: #eef0fe; color: ${ACCENT}; font-weight: bold; }
+        .sa-navitem.active { background: #f3e2d6; color: ${ACCENT}; font-weight: bold; }
         .sa-navitem.active .sa-navicon { color: ${ACCENT}; }
         .sa-navicon { transition: transform 0.15s ease, color 0.15s ease; display: flex; }
         .sa-logout:hover { background: #fdeeee; color: #dc3545 !important; }
         .sa-card { transition: transform 0.18s ease, box-shadow 0.18s ease; }
-        .sa-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(15,42,82,0.1); }
+        .sa-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(28,43,58,0.1); }
         .sa-card:hover .sa-iconbox { transform: scale(1.1) rotate(-4deg); }
         .sa-btn-primary { transition: transform 0.18s ease, box-shadow 0.18s ease; }
-        .sa-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(79,70,229,0.3); }
+        .sa-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(187,85,51,0.3); }
       `}</style>
       <div style={{ display: "flex", flex: 1, alignItems: "stretch" }}>
 
@@ -296,15 +296,15 @@ function Dashboard() {
           transition: "width 0.25s ease"
         }}>
           <div style={{
-            width: 240, height: "100%", background: "white", color: "#44485a",
-            display: "flex", flexDirection: "column", overflowY: "auto", borderRight: "1px solid #ebedf1"
+            width: 240, height: "100%", background: "#fffaf3", color: "#44485a",
+            display: "flex", flexDirection: "column", overflowY: "auto", borderRight: "1px solid #e3d9c6"
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "20px" }}>
               <div style={{
-                width: 38, height: 38, borderRadius: 10, background: NAVY,
-                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0
+                width: 38, height: 38, borderRadius: 10, background: NAVY, color: "#fffaf3",
+                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: "bold", letterSpacing: 0.5, flexShrink: 0
               }}>
-                🤖
+                SA
               </div>
               <div style={{ lineHeight: 1.2 }}>
                 <div style={{ fontSize: 14, fontWeight: "bold", color: NAVY }}>SmartAssist</div>
@@ -337,7 +337,7 @@ function Dashboard() {
               style={{
                 display: "flex", alignItems: "center", gap: 12, padding: "16px 20px",
                 cursor: "pointer", fontSize: 13.5, color: "#8a8f9c",
-                borderTop: "1px solid #ebedf1", transition: "background 0.15s ease, color 0.15s ease"
+                borderTop: "1px solid #e3d9c6", transition: "background 0.15s ease, color 0.15s ease"
               }}
             >
               <NavIcon id="logout" />
@@ -351,7 +351,7 @@ function Dashboard() {
 
           {/* TOP BAR */}
           <div style={{
-            background: "white", borderBottom: "1px solid #e0e0e0", position: "sticky", top: 0, zIndex: 20,
+            background: "#fffaf3", borderBottom: "1px solid #e3d9c6", position: "sticky", top: 0, zIndex: 20,
             display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 28px", gap: 20
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 18, flex: 1, minWidth: 0 }}>
@@ -372,13 +372,13 @@ function Dashboard() {
                   onFocus={() => setSearchOpen(true)}
                   style={{
                     width: "100%", boxSizing: "border-box", padding: "9px 14px 9px 34px",
-                    borderRadius: 20, border: "1px solid #e0e0e0", background: "#f5f6f8", fontSize: 13, outline: "none"
+                    borderRadius: 20, border: "1px solid #e3d9c6", background: "#f3ede1", fontSize: 13, outline: "none"
                   }}
                 />
                 {searchOpen && searchQuery.trim() && (
                   <>
                     <div onClick={() => setSearchOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 39 }} />
-                    <div style={{ position: "absolute", top: 40, left: 0, right: 0, background: "white", boxShadow: "0 4px 16px rgba(0,0,0,0.15)", borderRadius: 8, zIndex: 40, maxHeight: 260, overflowY: "auto" }}>
+                    <div style={{ position: "absolute", top: 40, left: 0, right: 0, background: "#fffaf3", boxShadow: "0 4px 16px rgba(0,0,0,0.15)", borderRadius: 8, zIndex: 40, maxHeight: 260, overflowY: "auto" }}>
                       {searchResults.length === 0 && (
                         <div style={{ padding: 14, fontSize: 13, color: "#999", textAlign: "center" }}>No matching units.</div>
                       )}
@@ -386,7 +386,7 @@ function Dashboard() {
                         <div
                           key={c.code}
                           onClick={() => { openUnit(c); setSearchQuery(""); setSearchOpen(false); }}
-                          style={{ padding: "10px 14px", fontSize: 13, color: "#333", cursor: "pointer", borderBottom: "1px solid #f0f0f0" }}
+                          style={{ padding: "10px 14px", fontSize: 13, color: "#333", cursor: "pointer", borderBottom: "1px solid #ece2d0" }}
                         >
                           <strong>{c.code}</strong> — {c.name}
                         </div>
@@ -408,12 +408,12 @@ function Dashboard() {
                 {notifOpen && (
                   <>
                     <div onClick={(e) => { e.stopPropagation(); setNotifOpen(false); }} style={{ position: "fixed", inset: 0, zIndex: 39 }} />
-                    <div style={{ position: "absolute", top: 30, right: 0, background: "white", boxShadow: "0 4px 16px rgba(0,0,0,0.15)", borderRadius: 8, width: 270, zIndex: 40, maxHeight: 320, overflowY: "auto" }}>
+                    <div style={{ position: "absolute", top: 30, right: 0, background: "#fffaf3", boxShadow: "0 4px 16px rgba(0,0,0,0.15)", borderRadius: 8, width: 270, zIndex: 40, maxHeight: 320, overflowY: "auto" }}>
                       {notifications.length === 0 && (
                         <div style={{ padding: 16, fontSize: 13, color: "#999", textAlign: "center" }}>No notifications yet.</div>
                       )}
                       {notifications.map(n => (
-                        <div key={n.id} style={{ padding: "12px 14px", fontSize: 12, color: "#333", borderBottom: "1px solid #f0f0f0", textAlign: "left" }}>
+                        <div key={n.id} style={{ padding: "12px 14px", fontSize: 12, color: "#333", borderBottom: "1px solid #ece2d0", textAlign: "left" }}>
                           {n.message}
                           <div style={{ fontSize: 10, color: "#aaa", marginTop: 4 }}>{new Date(n.time).toLocaleString()}</div>
                         </div>
@@ -428,7 +428,7 @@ function Dashboard() {
                   onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                   style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
                 >
-                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#e0e0e0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: "bold", color: "#333", flexShrink: 0 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#e3d9c6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: "bold", color: "#333", flexShrink: 0 }}>
                     {studentName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                   </div>
                   <div style={{ lineHeight: 1.25 }}>
@@ -442,11 +442,11 @@ function Dashboard() {
                   <>
                     <div onClick={() => setProfileMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 39 }} />
                     <div style={{
-                      position: "absolute", top: 46, right: 0, background: "white",
+                      position: "absolute", top: 46, right: 0, background: "#fffaf3",
                       boxShadow: "0 4px 16px rgba(0,0,0,0.15)", borderRadius: 8,
                       width: 180, zIndex: 40, overflow: "hidden"
                     }}>
-                      <div onClick={() => goTo("profile")} style={{ padding: "12px 16px", fontSize: 14, color: "#333", cursor: "pointer", borderBottom: "1px solid #e0e0e0" }}>
+                      <div onClick={() => goTo("profile")} style={{ padding: "12px 16px", fontSize: 14, color: "#333", cursor: "pointer", borderBottom: "1px solid #e3d9c6" }}>
                         My Profile
                       </div>
                       <div onClick={logout} style={{ padding: "12px 16px", fontSize: 14, color: "#dc3545", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
@@ -460,7 +460,7 @@ function Dashboard() {
           </div>
 
           {/* MAIN CONTENT */}
-          <div style={{ flex: 1, minHeight: 0, padding: activeTab === "chat" ? 0 : "28px 32px" }}>
+          <div style={{ flex: 1, minHeight: 0, padding: activeTab === "chat" ? 0 : "22px 28px" }}>
 
             {activeTab === "chat" && (
               <div style={{ height: "calc(100vh - 70px)", display: "flex", flexDirection: "column" }}>
@@ -476,17 +476,17 @@ function Dashboard() {
                   padding: "32px 34px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 18
                 }}>
                   <div style={{ position: "absolute", top: -60, right: -40, width: 220, height: 220, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
-                  <div style={{ position: "absolute", bottom: -70, right: 120, width: 160, height: 160, borderRadius: "50%", background: "rgba(232,160,32,0.15)" }} />
+                  <div style={{ position: "absolute", bottom: -70, right: 120, width: 160, height: 160, borderRadius: "50%", background: "rgba(194,134,42,0.15)" }} />
                   <div style={{ position: "relative", zIndex: 1 }}>
-                    <div style={{ fontSize: 24, fontWeight: "bold", color: "white" }}>Welcome back, {studentName}! 👋</div>
+                    <div style={{ fontSize: 24, fontWeight: "bold", color: "white" }}>Welcome back, {studentName}</div>
                     <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, marginTop: 6 }}>{todayFormatted}</div>
                   </div>
                   <button
                     onClick={() => goTo("chat")}
                     className="sa-btn-primary"
-                    style={{ position: "relative", zIndex: 1, background: "white", color: NAVY, border: "none", borderRadius: 24, padding: "13px 26px", fontSize: 14, fontWeight: "bold", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}
+                    style={{ position: "relative", zIndex: 1, background: "#fffaf3", color: NAVY, border: "none", borderRadius: 24, padding: "13px 26px", fontSize: 14, fontWeight: "bold", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}
                   >
-                    💬 Ask SmartAssist
+                    <NavIcon id="chat" /> Ask SmartAssist
                   </button>
                 </div>
 
@@ -516,7 +516,7 @@ function Dashboard() {
                             key={i}
                             className="sa-card"
                             onClick={() => openUnit(c)}
-                            style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 8px", borderRadius: 8, cursor: "pointer", borderBottom: i < courses.length - 1 ? "1px solid #f0f0f0" : "none" }}
+                            style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 8px", borderRadius: 8, cursor: "pointer", borderBottom: i < courses.length - 1 ? "1px solid #ece2d0" : "none" }}
                           >
                             <IconBox bg={c.color} size={42} fontSize={16}>{c.code.slice(0, 2)}</IconBox>
                             <div style={{ flex: 1, minWidth: 0 }}>
@@ -546,7 +546,7 @@ function Dashboard() {
                         {allAssessments.map(a => {
                           const diff = daysUntil(a.dueDate);
                           return (
-                            <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, paddingBottom: 12, borderBottom: "1px solid #f0f0f0" }}>
+                            <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, paddingBottom: 12, borderBottom: "1px solid #ece2d0" }}>
                               <div style={{ minWidth: 0 }}>
                                 <div style={{ fontSize: 13, fontWeight: "bold", color: "#222" }}>{a.title}</div>
                                 <div style={{ fontSize: 11.5, color: "#999", marginTop: 2 }}>{a.unitCode}{a.description ? ` — ${a.description}` : ""}</div>
@@ -576,7 +576,7 @@ function Dashboard() {
                       key={i}
                       className="sa-card"
                       onClick={() => openUnit(c)}
-                      style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.07)", cursor: "pointer" }}
+                      style={{ background: "#fffaf3", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.07)", cursor: "pointer" }}
                     >
                       <div style={{ height: 90, background: c.color }} />
                       <div style={{ padding: "14px 16px" }}>
@@ -598,7 +598,7 @@ function Dashboard() {
                 >
                   ← Back to My Courses
                 </button>
-                <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.07)", marginBottom: 20 }}>
+                <div style={{ background: "#fffaf3", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.07)", marginBottom: 20 }}>
                   <div style={{ height: 120, background: activeUnit.color }} />
                   <div style={{ padding: 24 }}>
                     <div style={{ fontSize: 20, fontWeight: "bold", color: NAVY }}>{activeUnit.code} — {activeUnit.name}</div>
@@ -607,7 +607,7 @@ function Dashboard() {
                 </div>
 
                 <div style={{ fontSize: 16, fontWeight: "bold", color: NAVY, marginBottom: 12 }}>Assessments</div>
-                <div style={{ background: "white", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.07)", overflow: "hidden", marginBottom: 24 }}>
+                <div style={{ background: "#fffaf3", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.07)", overflow: "hidden", marginBottom: 24 }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr>
@@ -622,12 +622,12 @@ function Dashboard() {
                       )}
                       {unitAssessments.map(a => (
                         <tr key={a.id}>
-                          <td style={{ padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #f0f0f0" }}>
+                          <td style={{ padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #ece2d0" }}>
                             {a.title}
                             {a.description && <div style={{ fontSize: 11, color: "#999", marginTop: 2 }}>{a.description}</div>}
                           </td>
-                          <td style={{ padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #f0f0f0" }}>{a.dueDate}</td>
-                          <td style={{ padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #f0f0f0" }}>{a.weight}%</td>
+                          <td style={{ padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #ece2d0" }}>{a.dueDate}</td>
+                          <td style={{ padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #ece2d0" }}>{a.weight}%</td>
                         </tr>
                       ))}
                     </tbody>
@@ -639,7 +639,7 @@ function Dashboard() {
             {activeTab === "assessments" && (
               <div>
                 <div style={{ fontSize: 22, fontWeight: "bold", color: NAVY, marginBottom: 20 }}>Assessments</div>
-                <div style={{ background: "white", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.07)", overflow: "hidden" }}>
+                <div style={{ background: "#fffaf3", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.07)", overflow: "hidden" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr>
@@ -655,13 +655,13 @@ function Dashboard() {
                       )}
                       {allAssessments.map(a => (
                         <tr key={a.id}>
-                          <td style={{ padding: "12px 16px", fontSize: 13, borderBottom: "1px solid #f0f0f0" }}>
+                          <td style={{ padding: "12px 16px", fontSize: 13, borderBottom: "1px solid #ece2d0" }}>
                             {a.title}
                             {a.description && <div style={{ fontSize: 11, color: "#999", marginTop: 2 }}>{a.description}</div>}
                           </td>
-                          <td style={{ padding: "12px 16px", fontSize: 13, borderBottom: "1px solid #f0f0f0" }}>{a.unitCode}</td>
-                          <td style={{ padding: "12px 16px", fontSize: 13, borderBottom: "1px solid #f0f0f0" }}>{a.dueDate}</td>
-                          <td style={{ padding: "12px 16px", fontSize: 13, borderBottom: "1px solid #f0f0f0" }}>{a.weight}%</td>
+                          <td style={{ padding: "12px 16px", fontSize: 13, borderBottom: "1px solid #ece2d0" }}>{a.unitCode}</td>
+                          <td style={{ padding: "12px 16px", fontSize: 13, borderBottom: "1px solid #ece2d0" }}>{a.dueDate}</td>
+                          <td style={{ padding: "12px 16px", fontSize: 13, borderBottom: "1px solid #ece2d0" }}>{a.weight}%</td>
                         </tr>
                       ))}
                     </tbody>
@@ -673,13 +673,13 @@ function Dashboard() {
             {activeTab === "attendance" && (
               <div>
                 <div style={{ fontSize: 22, fontWeight: "bold", color: NAVY, marginBottom: 8 }}>Attendance</div>
-                <div style={{ background: "#eef1fb", border: "1px solid #dbe1f7", borderRadius: 10, padding: "12px 16px", fontSize: 13, color: "#3b3f5c", marginBottom: 20, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ background: "#f6ede0", border: "1px solid #e7d9bf", borderRadius: 10, padding: "12px 16px", fontSize: 13, color: "#3b3f5c", marginBottom: 20, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 16 }}>ℹ️</span>
                   <span>This is attendance recorded manually here in SmartAssist, separate from Moodle. For your real, live roll-marked attendance from Moodle, check the{" "}
                     <span onClick={() => goTo("moodle")} style={{ color: ACCENT, fontWeight: "bold", cursor: "pointer" }}>My Moodle</span> tab.
                   </span>
                 </div>
-                <div style={{ background: "white", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.07)", padding: 20 }}>
+                <div style={{ background: "#fffaf3", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.07)", padding: 20 }}>
                   <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
                     <div>
                       <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 4 }}>Course/Unit</label>
@@ -785,7 +785,7 @@ function Dashboard() {
                           <span style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12.5, fontWeight: "bold", background: s.status === "submitted" ? "#d4edda" : "#fff3cd", color: s.status === "submitted" ? "#155724" : "#a15c00" }}>
                             {s.status}
                           </span>
-                          <span style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12.5, fontWeight: "bold", background: "#eef0fe", color: ACCENT }}>
+                          <span style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12.5, fontWeight: "bold", background: "#f3e2d6", color: ACCENT }}>
                             {s.grading_status}
                           </span>
                         </div>
@@ -896,10 +896,10 @@ function Dashboard() {
                         <div style={{ fontSize: 15, fontWeight: "bold", color: NAVY, marginBottom: 14 }}>Quick Links</div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                           {[
-                            { id: "chat", label: "Ask SmartAssist", icon: "💬" },
-                            { id: "moodle", label: "My Moodle (live data)", icon: "🎓" },
-                            { id: "attendance", label: "Attendance record", icon: "📅" },
-                            { id: "courses", label: "My Courses", icon: "📚" },
+                            { id: "chat", label: "Ask SmartAssist", icon: "chat" },
+                            { id: "moodle", label: "My Moodle (live data)", icon: "moodle" },
+                            { id: "attendance", label: "Attendance record", icon: "attendance" },
+                            { id: "courses", label: "My Courses", icon: "courses" },
                           ].map(link => (
                             <div
                               key={link.id}
@@ -907,7 +907,7 @@ function Dashboard() {
                               onClick={() => goTo(link.id)}
                               style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13.5, color: "#333", fontWeight: 600 }}
                             >
-                              <span style={{ fontSize: 16 }}>{link.icon}</span>
+                              <span style={{ color: ACCENT, display: "flex" }}><NavIcon id={link.icon} /></span>
                               <span style={{ flex: 1 }}>{link.label}</span>
                               <span style={{ color: "#bbb" }}>›</span>
                             </div>
@@ -925,7 +925,7 @@ function Dashboard() {
           </div>
 
           {activeTab !== "chat" && (
-            <div style={{ borderTop: "1px solid #ebedf1", padding: "16px 32px", textAlign: "center", fontSize: 12, color: "#aaa" }}>
+            <div style={{ borderTop: "1px solid #e3d9c6", padding: "16px 32px", textAlign: "center", fontSize: 12, color: "#aaa" }}>
               CIHE SmartAssist · Your AI campus assistant · Data synced live from Moodle
             </div>
           )}

@@ -29,8 +29,8 @@ function UnitTogglePicker({ units, selected, onChange, compact }) {
             style={{
               padding: compact ? "4px 9px" : "6px 12px",
               borderRadius: 16,
-              border: active ? "1px solid #0f2a52" : "1px solid #d4d7de",
-              background: active ? "#0f2a52" : "white",
+              border: active ? "1px solid #1c2b3a" : "1px solid #d4d7de",
+              background: active ? "#1c2b3a" : "white",
               color: active ? "white" : "#444",
               fontSize: compact ? 11 : 12.5,
               fontWeight: active ? "bold" : "normal",
@@ -285,10 +285,10 @@ function AdminDashboard() {
 
 
   const inputStyle = { padding: 9, border: "1px solid #ccc", borderRadius: 6, fontSize: 13, marginRight: 8, marginBottom: 8 };
-  const thStyle = { background: "#0f2a52", color: "white", padding: "10px 14px", textAlign: "left", fontSize: 12 };
-  const tdStyle = { padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #f0f0f0" };
+  const thStyle = { background: "#1c2b3a", color: "white", padding: "10px 14px", textAlign: "left", fontSize: 12 };
+  const tdStyle = { padding: "10px 14px", fontSize: 13, borderBottom: "1px solid #ece2d0" };
   const actionsThStyle = { ...thStyle, position: "sticky", right: 0 };
-  const actionsTdStyle = { ...tdStyle, position: "sticky", right: 0, background: "white" };
+  const actionsTdStyle = { ...tdStyle, position: "sticky", right: 0, background: "#fffaf3" };
 
   function studentName(id) {
     const s = students.find(s => s.id === id);
@@ -358,25 +358,25 @@ function AdminDashboard() {
   }
 
   return (
-    <div style={{ fontFamily: "Arial, sans-serif", background: "#f0f2f5", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ fontFamily: "Arial, sans-serif", background: "#f3ede1", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
 
-      <div style={{ background: "white", borderBottom: "1px solid #e0e0e0", padding: "16px 30px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ background: "#fffaf3", borderBottom: "1px solid #e3d9c6", padding: "16px 30px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 40, height: 40, background: "#0f2a52", color: "white", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: "bold" }}>
+          <div style={{ width: 40, height: 40, background: "#1c2b3a", color: "white", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: "bold" }}>
             CIHE
           </div>
-          <span style={{ fontSize: 16, fontWeight: "bold", color: "#0f2a52" }}>Admin Console</span>
+          <span style={{ fontSize: 16, fontWeight: "bold", color: "#1c2b3a" }}>Admin Console</span>
         </div>
-        <button onClick={logout} style={{ background: "transparent", border: "1px solid #0f2a52", color: "#0f2a52", padding: "8px 18px", borderRadius: 6, fontWeight: "bold", fontSize: 13, cursor: "pointer" }}>
+        <button onClick={logout} style={{ background: "transparent", border: "1px solid #1c2b3a", color: "#1c2b3a", padding: "8px 18px", borderRadius: 6, fontWeight: "bold", fontSize: 13, cursor: "pointer" }}>
           Logout
         </button>
       </div>
 
       <style>{`
         .sa-admin-tab { transition: background 0.15s ease, border-color 0.15s ease; }
-        .sa-admin-tab:hover { background: rgba(255,255,255,0.08); border-bottom-color: rgba(232,160,32,0.5) !important; }
+        .sa-admin-tab:hover { background: rgba(255,255,255,0.08); border-bottom-color: rgba(194,134,42,0.5) !important; }
       `}</style>
-      <div style={{ background: "#0f2a52", padding: "0 30px", display: "flex", gap: 4, flexWrap: "wrap" }}>
+      <div style={{ background: "#1c2b3a", padding: "0 30px", display: "flex", gap: 4, flexWrap: "wrap" }}>
         {[
           { id: "insights", label: "Chatbot Insights" },
           { id: "overview", label: "Student Overview" },
@@ -393,7 +393,7 @@ function AdminDashboard() {
             onClick={() => setActiveTab(t.id)}
             style={{
               background: "transparent", border: "none", color: "white", padding: "12px 20px", fontSize: 13, cursor: "pointer",
-              borderBottom: activeTab === t.id ? "3px solid #e8a020" : "3px solid transparent",
+              borderBottom: activeTab === t.id ? "3px solid #c2862a" : "3px solid transparent",
               fontWeight: activeTab === t.id ? "bold" : "normal"
             }}
           >
@@ -402,17 +402,17 @@ function AdminDashboard() {
         ))}
       </div>
 
-      <div style={{ padding: 30, maxWidth: 1000, margin: "0 auto", flex: 1, width: "100%", boxSizing: "border-box" }}>
+      <div style={{ padding: "24px 28px", maxWidth: 1080, margin: "0 auto", flex: 1, width: "100%", boxSizing: "border-box" }}>
 
         {activeTab === "insights" && (
           <div>
-            <div style={{ fontSize: 20, fontWeight: "bold", color: "#0f2a52", marginBottom: 6 }}>Chatbot Insights</div>
+            <div style={{ fontSize: 20, fontWeight: "bold", color: "#1c2b3a", marginBottom: 6 }}>Chatbot Insights</div>
             <div style={{ fontSize: 12, color: "#888", marginBottom: 20 }}>
               What students are actually asking SmartAssist, and which questions it couldn't answer.
             </div>
 
             {!chatInsights && (
-              <div style={{ background: "white", borderRadius: 8, padding: 24, textAlign: "center", color: "#999", fontSize: 13, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+              <div style={{ background: "#fffaf3", borderRadius: 8, padding: 24, textAlign: "center", color: "#999", fontSize: 13, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                 Loading chatbot insights...
               </div>
             )}
@@ -420,15 +420,15 @@ function AdminDashboard() {
             {chatInsights && (
               <>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 28 }}>
-                  <div style={{ background: "white", borderRadius: 8, padding: "18px 20px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                  <div style={{ background: "#fffaf3", borderRadius: 8, padding: "18px 20px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                     <div style={{ fontSize: 12, color: "#888" }}>Total Questions Asked</div>
-                    <div style={{ fontSize: 28, fontWeight: "bold", color: "#0f2a52", marginTop: 4 }}>{chatInsights.totalQueries}</div>
+                    <div style={{ fontSize: 28, fontWeight: "bold", color: "#1c2b3a", marginTop: 4 }}>{chatInsights.totalQueries}</div>
                   </div>
-                  <div style={{ background: "white", borderRadius: 8, padding: "18px 20px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                  <div style={{ background: "#fffaf3", borderRadius: 8, padding: "18px 20px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                     <div style={{ fontSize: 12, color: "#888" }}>Answered by AI</div>
                     <div style={{ fontSize: 28, fontWeight: "bold", color: "#155724", marginTop: 4 }}>{chatInsights.answered}</div>
                   </div>
-                  <div style={{ background: "white", borderRadius: 8, padding: "18px 20px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                  <div style={{ background: "#fffaf3", borderRadius: 8, padding: "18px 20px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                     <div style={{ fontSize: 12, color: "#888" }}>Escalated (unanswered)</div>
                     <div style={{ fontSize: 28, fontWeight: "bold", color: "#dc3545", marginTop: 4 }}>{chatInsights.escalated}</div>
                   </div>
@@ -436,23 +436,23 @@ function AdminDashboard() {
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
                   <div>
-                    <div style={{ fontSize: 15, fontWeight: "bold", color: "#0f2a52", marginBottom: 10 }}>Most Asked Questions</div>
-                    <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                    <div style={{ fontSize: 15, fontWeight: "bold", color: "#1c2b3a", marginBottom: 10 }}>Most Asked Questions</div>
+                    <div style={{ background: "#fffaf3", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                       {chatInsights.topQuestions.length === 0 && (
                         <div style={{ padding: 16, fontSize: 13, color: "#999" }}>No questions asked yet.</div>
                       )}
                       {chatInsights.topQuestions.map((q, i) => (
-                        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "10px 14px", borderBottom: i < chatInsights.topQuestions.length - 1 ? "1px solid #f0f0f0" : "none" }}>
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "10px 14px", borderBottom: i < chatInsights.topQuestions.length - 1 ? "1px solid #ece2d0" : "none" }}>
                           <div style={{ fontSize: 12.5, color: "#333" }}>{q.question}</div>
-                          <div style={{ fontSize: 12, fontWeight: "bold", color: "#0f2a52", whiteSpace: "nowrap" }}>×{q.count}</div>
+                          <div style={{ fontSize: 12, fontWeight: "bold", color: "#1c2b3a", whiteSpace: "nowrap" }}>×{q.count}</div>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   <div>
-                    <div style={{ fontSize: 15, fontWeight: "bold", color: "#0f2a52", marginBottom: 10 }}>Most Asked Topics / Fields</div>
-                    <div style={{ background: "white", borderRadius: 8, padding: "14px 16px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                    <div style={{ fontSize: 15, fontWeight: "bold", color: "#1c2b3a", marginBottom: 10 }}>Most Asked Topics / Fields</div>
+                    <div style={{ background: "#fffaf3", borderRadius: 8, padding: "14px 16px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                       {chatInsights.topTopics.length === 0 && (
                         <div style={{ fontSize: 13, color: "#999" }}>No topics recorded yet.</div>
                       )}
@@ -466,7 +466,7 @@ function AdminDashboard() {
                               <span style={{ fontWeight: "bold" }}>{t.count}</span>
                             </div>
                             <div style={{ background: "#eef1f5", borderRadius: 6, height: 8 }}>
-                              <div style={{ width: `${pct}%`, background: t.topic === "Unmatched" ? "#dc3545" : "#0f2a52", height: 8, borderRadius: 6 }} />
+                              <div style={{ width: `${pct}%`, background: t.topic === "Unmatched" ? "#dc3545" : "#1c2b3a", height: 8, borderRadius: 6 }} />
                             </div>
                           </div>
                         );
@@ -481,9 +481,9 @@ function AdminDashboard() {
 
         {activeTab === "units" && (
           <div>
-            <div style={{ fontSize: 20, fontWeight: "bold", color: "#0f2a52", marginBottom: 16 }}>Units</div>
+            <div style={{ fontSize: 20, fontWeight: "bold", color: "#1c2b3a", marginBottom: 16 }}>Units</div>
 
-            <div style={{ background: "white", padding: 16, borderRadius: 8, marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+            <div style={{ background: "#fffaf3", padding: 16, borderRadius: 8, marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
               <div style={{ fontSize: 13, fontWeight: "bold", marginBottom: 10, color: "#555" }}>Add New Unit</div>
               <input placeholder="Code (e.g. ICT308)" value={newUnit.code} onChange={e => setNewUnit({ ...newUnit, code: e.target.value })} style={inputStyle} />
               <input placeholder="Unit Name" value={newUnit.name} onChange={e => setNewUnit({ ...newUnit, name: e.target.value })} style={{ ...inputStyle, width: 220 }} />
@@ -491,12 +491,12 @@ function AdminDashboard() {
                 {SEMESTER_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <input placeholder="Total Seats" type="number" value={newUnit.totalSeats} onChange={e => setNewUnit({ ...newUnit, totalSeats: e.target.value })} style={{ ...inputStyle, width: 100 }} />
-              <button onClick={addUnit} style={{ padding: "9px 18px", background: "#0f2a52", color: "white", border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
+              <button onClick={addUnit} style={{ padding: "9px 18px", background: "#1c2b3a", color: "white", border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
                 Add Unit
               </button>
             </div>
 
-            <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+            <div style={{ background: "#fffaf3", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
               <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -533,11 +533,11 @@ function AdminDashboard() {
         {activeTab === "students" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-              <div style={{ fontSize: 20, fontWeight: "bold", color: "#0f2a52" }}>Students</div>
+              <div style={{ fontSize: 20, fontWeight: "bold", color: "#1c2b3a" }}>Students</div>
               <button
                 onClick={syncStudentsFromMoodle}
                 disabled={syncingMoodleStudents}
-                style={{ padding: "9px 18px", background: "#e8a020", color: "white", border: "none", borderRadius: 20, fontSize: 12.5, fontWeight: "bold", cursor: syncingMoodleStudents ? "default" : "pointer", opacity: syncingMoodleStudents ? 0.6 : 1 }}
+                style={{ padding: "9px 18px", background: "#c2862a", color: "white", border: "none", borderRadius: 20, fontSize: 12.5, fontWeight: "bold", cursor: syncingMoodleStudents ? "default" : "pointer", opacity: syncingMoodleStudents ? 0.6 : 1 }}
               >
                 {syncingMoodleStudents ? "Syncing..." : `↻ Sync students from Moodle${moodleStudents.length ? ` (${new Set(moodleStudents.map(m => m.email)).size} enrolled)` : ""}`}
               </button>
@@ -554,7 +554,7 @@ function AdminDashboard() {
               </div>
             )}
 
-            <div style={{ background: "white", padding: 16, borderRadius: 8, marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+            <div style={{ background: "#fffaf3", padding: 16, borderRadius: 8, marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
               <div style={{ fontSize: 13, fontWeight: "bold", marginBottom: 10, color: "#555" }}>Add New Student</div>
               <input placeholder="Full Name" value={newStudent.name} onChange={e => setNewStudent({ ...newStudent, name: e.target.value })} style={{ ...inputStyle, width: 180 }} />
               <input placeholder="Email" value={newStudent.email} onChange={e => setNewStudent({ ...newStudent, email: e.target.value })} style={{ ...inputStyle, width: 220 }} />
@@ -565,7 +565,7 @@ function AdminDashboard() {
                 <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 4 }}>Units — click to add/remove</label>
                 <UnitTogglePicker units={units} selected={newStudent.unitCodes} onChange={codes => setNewStudent({ ...newStudent, unitCodes: codes })} />
               </div>
-              <button onClick={addStudent} style={{ padding: "9px 18px", background: "#0f2a52", color: "white", border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer", verticalAlign: "top" }}>
+              <button onClick={addStudent} style={{ padding: "9px 18px", background: "#1c2b3a", color: "white", border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer", verticalAlign: "top" }}>
                 Add Student
               </button>
               <div style={{ fontSize: 11, color: "#999", marginTop: 6 }}>
@@ -578,7 +578,7 @@ function AdminDashboard() {
               )}
             </div>
 
-            <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+            <div style={{ background: "#fffaf3", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
               <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -618,7 +618,7 @@ function AdminDashboard() {
                         </td>
                         <td style={tdStyle}>—</td>
                         <td style={actionsTdStyle}>
-                          <button onClick={() => saveEdit(s.id)} style={{ background: "#0f2a52", color: "white", border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer", marginRight: 6 }}>Save</button>
+                          <button onClick={() => saveEdit(s.id)} style={{ background: "#1c2b3a", color: "white", border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer", marginRight: 6 }}>Save</button>
                           <button onClick={() => setEditingId(null)} style={{ background: "none", border: "1px solid #ccc", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>Cancel</button>
                         </td>
                       </tr>
@@ -631,7 +631,7 @@ function AdminDashboard() {
                         <td style={tdStyle}>{s.joiningDate || "—"}</td>
                         <td style={tdStyle}>{s.password ? "✅ Yes" : "⏳ Not yet"}</td>
                         <td style={actionsTdStyle}>
-                          <button onClick={() => startEdit(s)} style={{ background: "none", border: "none", color: "#0f2a52", cursor: "pointer", fontSize: 12, marginRight: 12 }}>Edit</button>
+                          <button onClick={() => startEdit(s)} style={{ background: "none", border: "none", color: "#1c2b3a", cursor: "pointer", fontSize: 12, marginRight: 12 }}>Edit</button>
                           <button onClick={() => deleteStudent(s.id)} style={{ background: "none", border: "none", color: "#dc3545", cursor: "pointer", fontSize: 12 }}>Delete</button>
                         </td>
                       </tr>
@@ -646,9 +646,9 @@ function AdminDashboard() {
 
         {activeTab === "attendance" && (
           <div>
-            <div style={{ fontSize: 20, fontWeight: "bold", color: "#0f2a52", marginBottom: 16 }}>Attendance</div>
+            <div style={{ fontSize: 20, fontWeight: "bold", color: "#1c2b3a", marginBottom: 16 }}>Attendance</div>
 
-            <div style={{ background: "white", padding: 16, borderRadius: 8, marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+            <div style={{ background: "#fffaf3", padding: 16, borderRadius: 8, marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
               <div style={{ fontSize: 13, fontWeight: "bold", marginBottom: 10, color: "#555" }}>Record Attendance</div>
               <select
                 value={newAttendance.studentId}
@@ -679,12 +679,12 @@ function AdminDashboard() {
                 <option value="Present">Present</option>
                 <option value="Absent">Absent</option>
               </select>
-              <button onClick={addAttendance} style={{ padding: "9px 18px", background: "#0f2a52", color: "white", border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
+              <button onClick={addAttendance} style={{ padding: "9px 18px", background: "#1c2b3a", color: "white", border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
                 Add Record
               </button>
             </div>
 
-            <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+            <div style={{ background: "#fffaf3", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
               <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -720,8 +720,8 @@ function AdminDashboard() {
               </div>
             </div>
 
-            <div style={{ fontSize: 16, fontWeight: "bold", color: "#0f2a52", margin: "26px 0 12px" }}>Weekly Attendance Summary</div>
-            <div style={{ background: "white", padding: 16, borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+            <div style={{ fontSize: 16, fontWeight: "bold", color: "#1c2b3a", margin: "26px 0 12px" }}>Weekly Attendance Summary</div>
+            <div style={{ background: "#fffaf3", padding: 16, borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
               <select
                 value={weeklyStudentId}
                 onChange={e => {
@@ -757,9 +757,9 @@ function AdminDashboard() {
 
         {activeTab === "assessments" && (
           <div>
-            <div style={{ fontSize: 20, fontWeight: "bold", color: "#0f2a52", marginBottom: 16 }}>Assessments</div>
+            <div style={{ fontSize: 20, fontWeight: "bold", color: "#1c2b3a", marginBottom: 16 }}>Assessments</div>
 
-            <div style={{ background: "white", padding: 16, borderRadius: 8, marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+            <div style={{ background: "#fffaf3", padding: 16, borderRadius: 8, marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
               <div style={{ fontSize: 13, fontWeight: "bold", marginBottom: 10, color: "#555" }}>Add New Assessment</div>
               <select value={newAssessment.unitCode} onChange={e => setNewAssessment({ ...newAssessment, unitCode: e.target.value })} style={inputStyle}>
                 <option value="">Select unit</option>
@@ -771,7 +771,7 @@ function AdminDashboard() {
               <br />
               <input placeholder="Description (optional)" value={newAssessment.description} onChange={e => setNewAssessment({ ...newAssessment, description: e.target.value })} style={{ ...inputStyle, width: 400 }} />
               <br />
-              <button onClick={addAssessment} style={{ padding: "9px 18px", background: "#0f2a52", color: "white", border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
+              <button onClick={addAssessment} style={{ padding: "9px 18px", background: "#1c2b3a", color: "white", border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
                 Add Assessment
               </button>
               <div style={{ fontSize: 11, color: "#999", marginTop: 6 }}>
@@ -779,7 +779,7 @@ function AdminDashboard() {
               </div>
             </div>
 
-            <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+            <div style={{ background: "#fffaf3", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
               <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -815,9 +815,9 @@ function AdminDashboard() {
 
         {activeTab === "timetable" && (
           <div>
-            <div style={{ fontSize: 20, fontWeight: "bold", color: "#0f2a52", marginBottom: 16 }}>Timetable</div>
+            <div style={{ fontSize: 20, fontWeight: "bold", color: "#1c2b3a", marginBottom: 16 }}>Timetable</div>
 
-            <div style={{ background: "white", padding: 16, borderRadius: 8, marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+            <div style={{ background: "#fffaf3", padding: 16, borderRadius: 8, marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
               <div style={{ fontSize: 13, fontWeight: "bold", marginBottom: 10, color: "#555" }}>Add Class Session</div>
               <select value={newSession.unitCode} onChange={e => setNewSession({ ...newSession, unitCode: e.target.value })} style={inputStyle}>
                 <option value="">Select unit</option>
@@ -839,12 +839,12 @@ function AdminDashboard() {
                 {SEMESTER_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <br />
-              <button onClick={addSession} style={{ padding: "9px 18px", background: "#0f2a52", color: "white", border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
+              <button onClick={addSession} style={{ padding: "9px 18px", background: "#1c2b3a", color: "white", border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
                 Add Session
               </button>
             </div>
 
-            <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+            <div style={{ background: "#fffaf3", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
               <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -901,7 +901,7 @@ function AdminDashboard() {
                           </select>
                         </td>
                         <td style={actionsTdStyle}>
-                          <button onClick={() => saveEditSession(t.id)} style={{ background: "#0f2a52", color: "white", border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer", marginRight: 6 }}>Save</button>
+                          <button onClick={() => saveEditSession(t.id)} style={{ background: "#1c2b3a", color: "white", border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer", marginRight: 6 }}>Save</button>
                           <button onClick={() => { setEditingSessionId(null); setEditSessionForm(null); }} style={{ background: "none", border: "1px solid #ccc", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>Cancel</button>
                         </td>
                       </tr>
@@ -916,7 +916,7 @@ function AdminDashboard() {
                         <td style={tdStyle}>{t.location || "—"}</td>
                         <td style={tdStyle}>{t.semester}</td>
                         <td style={actionsTdStyle}>
-                          <button onClick={() => startEditSession(t)} style={{ background: "none", border: "none", color: "#0f2a52", cursor: "pointer", fontSize: 12, marginRight: 12 }}>Edit</button>
+                          <button onClick={() => startEditSession(t)} style={{ background: "none", border: "none", color: "#1c2b3a", cursor: "pointer", fontSize: 12, marginRight: 12 }}>Edit</button>
                           <button onClick={() => deleteSession(t.id)} style={{ background: "none", border: "none", color: "#dc3545", cursor: "pointer", fontSize: 12 }}>Delete</button>
                         </td>
                       </tr>
@@ -932,11 +932,11 @@ function AdminDashboard() {
         {activeTab === "overview" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, flexWrap: "wrap", gap: 10 }}>
-              <div style={{ fontSize: 20, fontWeight: "bold", color: "#0f2a52" }}>Student Overview</div>
+              <div style={{ fontSize: 20, fontWeight: "bold", color: "#1c2b3a" }}>Student Overview</div>
               <button
                 onClick={loadMoodleAttendanceRecords}
                 disabled={moodleAttendanceRecordsLoading}
-                style={{ padding: "8px 16px", background: "#0f2a52", color: "white", border: "none", borderRadius: 18, fontSize: 12, fontWeight: "bold", cursor: moodleAttendanceRecordsLoading ? "default" : "pointer", opacity: moodleAttendanceRecordsLoading ? 0.6 : 1 }}
+                style={{ padding: "8px 16px", background: "#1c2b3a", color: "white", border: "none", borderRadius: 18, fontSize: 12, fontWeight: "bold", cursor: moodleAttendanceRecordsLoading ? "default" : "pointer", opacity: moodleAttendanceRecordsLoading ? 0.6 : 1 }}
               >
                 {moodleAttendanceRecordsLoading ? "Loading Moodle attendance..." : "↻ Refresh from Moodle"}
               </button>
@@ -946,7 +946,7 @@ function AdminDashboard() {
             </div>
 
             {students.length === 0 && (
-              <div style={{ background: "white", borderRadius: 8, padding: 24, fontSize: 13, color: "#888", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+              <div style={{ background: "#fffaf3", borderRadius: 8, padding: 24, fontSize: 13, color: "#888", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                 No students yet — add one in Manage Students, or sync from Moodle there.
               </div>
             )}
@@ -961,7 +961,7 @@ function AdminDashboard() {
                 };
                 const c = toneColors[standing.tone];
                 return (
-                  <div key={s.id} style={{ background: "white", borderRadius: 10, padding: "16px 18px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", borderTop: `4px solid ${c.fg}` }}>
+                  <div key={s.id} style={{ background: "#fffaf3", borderRadius: 10, padding: "16px 18px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", borderTop: `4px solid ${c.fg}` }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                       <div>
                         <div style={{ fontSize: 14.5, fontWeight: "bold", color: "#222" }}>{s.name}</div>
@@ -992,13 +992,13 @@ function AdminDashboard() {
 
         {activeTab === "moodle" && (
           <div>
-            <div style={{ fontSize: 20, fontWeight: "bold", color: "#0f2a52", marginBottom: 16 }}>Moodle Live Data</div>
+            <div style={{ fontSize: 20, fontWeight: "bold", color: "#1c2b3a", marginBottom: 16 }}>Moodle Live Data</div>
             <div style={{ fontSize: 12, color: "#888", marginBottom: 20 }}>
               This data is pulled live from Moodle via the RAG backend. It is read-only here — manage it in Moodle itself.
             </div>
 
-            <div style={{ fontSize: 16, fontWeight: "bold", color: "#0f2a52", marginBottom: 10 }}>Assignments</div>
-            <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", marginBottom: 30 }}>
+            <div style={{ fontSize: 16, fontWeight: "bold", color: "#1c2b3a", marginBottom: 10 }}>Assignments</div>
+            <div style={{ background: "#fffaf3", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", marginBottom: 30 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
@@ -1024,8 +1024,8 @@ function AdminDashboard() {
               </table>
             </div>
 
-            <div style={{ fontSize: 16, fontWeight: "bold", color: "#0f2a52", marginBottom: 10 }}>Enrolled Students</div>
-            <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", marginBottom: 30 }}>
+            <div style={{ fontSize: 16, fontWeight: "bold", color: "#1c2b3a", marginBottom: 10 }}>Enrolled Students</div>
+            <div style={{ background: "#fffaf3", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", marginBottom: 30 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
@@ -1050,16 +1050,16 @@ function AdminDashboard() {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-              <div style={{ fontSize: 16, fontWeight: "bold", color: "#0f2a52" }}>Assignment Submissions (per-student)</div>
+              <div style={{ fontSize: 16, fontWeight: "bold", color: "#1c2b3a" }}>Assignment Submissions (per-student)</div>
               <button
                 onClick={loadMoodleSubmissions}
                 disabled={moodleSubmissionsLoading}
-                style={{ padding: "5px 14px", background: "#0f2a52", color: "white", border: "none", borderRadius: 6, fontSize: 12, cursor: moodleSubmissionsLoading ? "default" : "pointer", opacity: moodleSubmissionsLoading ? 0.6 : 1 }}
+                style={{ padding: "5px 14px", background: "#1c2b3a", color: "white", border: "none", borderRadius: 6, fontSize: 12, cursor: moodleSubmissionsLoading ? "default" : "pointer", opacity: moodleSubmissionsLoading ? 0.6 : 1 }}
               >
                 {moodleSubmissionsLoading ? "Loading..." : moodleSubmissionsLoaded ? "Refresh" : "Load submissions"}
               </button>
             </div>
-            <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", marginBottom: 30 }}>
+            <div style={{ background: "#fffaf3", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", marginBottom: 30 }}>
               <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -1101,11 +1101,11 @@ function AdminDashboard() {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-              <div style={{ fontSize: 16, fontWeight: "bold", color: "#0f2a52" }}>Attendance Records (per-student)</div>
+              <div style={{ fontSize: 16, fontWeight: "bold", color: "#1c2b3a" }}>Attendance Records (per-student)</div>
               <button
                 onClick={loadMoodleAttendanceRecords}
                 disabled={moodleAttendanceRecordsLoading}
-                style={{ padding: "5px 14px", background: "#0f2a52", color: "white", border: "none", borderRadius: 6, fontSize: 12, cursor: moodleAttendanceRecordsLoading ? "default" : "pointer", opacity: moodleAttendanceRecordsLoading ? 0.6 : 1 }}
+                style={{ padding: "5px 14px", background: "#1c2b3a", color: "white", border: "none", borderRadius: 6, fontSize: 12, cursor: moodleAttendanceRecordsLoading ? "default" : "pointer", opacity: moodleAttendanceRecordsLoading ? 0.6 : 1 }}
               >
                 {moodleAttendanceRecordsLoading ? "Loading..." : moodleAttendanceRecordsLoaded ? "Refresh" : "Load attendance records"}
               </button>
@@ -1113,7 +1113,7 @@ function AdminDashboard() {
             <div style={{ fontSize: 11.5, color: "#999", marginBottom: 10 }}>
               This pulls the full real roster for every session (one Moodle call per session), so it takes a few seconds longer than the tables above.
             </div>
-            <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+            <div style={{ background: "#fffaf3", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
               <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -1160,7 +1160,7 @@ function AdminDashboard() {
         )}
       </div>
 
-      <div style={{ borderTop: "1px solid #e4e7ee", padding: "16px 30px", textAlign: "center", fontSize: 12, color: "#9aa0ae" }}>
+      <div style={{ borderTop: "1px solid #e3d9c6", padding: "16px 30px", textAlign: "center", fontSize: 12, color: "#9aa0ae" }}>
         CIHE SmartAssist · Admin Console · Powered by a locally-run RAG chatbot over your Moodle content
       </div>
     </div>

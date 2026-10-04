@@ -16,12 +16,12 @@ function Chatbot() {
   }, [navigate]);
 
   return (
-    <div style={{ fontFamily: "Arial, sans-serif", background: "#f0f2f5", height: "100vh", display: "flex", flexDirection: "column" }}>
-      <div style={{ background: "#0f2a52", color: "white", padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
-        <div style={{ fontWeight: "bold" }}>🤖 CIHE SmartAssist</div>
+    <div style={{ fontFamily: "Arial, sans-serif", background: "#f3ede1", height: "100vh", display: "flex", flexDirection: "column" }}>
+      <div style={{ background: "#1c2b3a", color: "white", padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+        <div style={{ fontWeight: "bold", letterSpacing: 0.3 }}>CIHE SmartAssist</div>
         <button
           onClick={() => navigate(localStorage.getItem("role") === "admin" ? "/admin" : "/dashboard")}
-          style={{ background: "#e8a020", color: "white", padding: "8px 18px", borderRadius: 5, border: "none", fontWeight: "bold", cursor: "pointer" }}
+          style={{ background: "#c2862a", color: "white", padding: "8px 18px", borderRadius: 5, border: "none", fontWeight: "bold", cursor: "pointer" }}
         >
           ← Dashboard
         </button>

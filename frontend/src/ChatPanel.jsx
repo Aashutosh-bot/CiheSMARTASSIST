@@ -1,7 +1,23 @@
 import { useState, useRef, useEffect } from "react";
 
-const NAVY = "#0f2a52";
-const GOLD = "#e8a020";
+const NAVY = "#1c2b3a";
+const GOLD = "#c2862a";
+
+function BotAvatar({ size = 44 }) {
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", background: NAVY, color: "#fffaf3", display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.36, fontWeight: "bold", letterSpacing: 0.5, flexShrink: 0 }}>
+      SA
+    </div>
+  );
+}
+
+function ChatIllustration() {
+  return (
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={NAVY} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" />
+    </svg>
+  );
+}
 
 const DEFAULT_PROMPTS = [
   "What's my attendance percentage?",
@@ -68,10 +84,8 @@ function ChatPanel({ title = "CIHE SmartAssist", subtitle = "Your AI campus assi
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       {/* HEADER */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 24px", borderBottom: "1px solid #e8ecf1", background: "white", flexShrink: 0 }}>
-        <div style={{ width: 44, height: 44, borderRadius: "50%", background: NAVY, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
-          🤖
-        </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 24px", borderBottom: "1px solid #e3d9c6", background: "#fffaf3", flexShrink: 0 }}>
+        <BotAvatar />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 16, fontWeight: "bold", color: NAVY }}>{title}</div>
           <div style={{ fontSize: 12, color: "#888" }}>{subtitle}</div>
@@ -79,10 +93,10 @@ function ChatPanel({ title = "CIHE SmartAssist", subtitle = "Your AI campus assi
       </div>
 
       {/* MESSAGES */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "24px 24px 8px", background: "#f6f8fb" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "24px 24px 8px", background: "#f3ede1" }}>
         {messages.length === 0 && (
           <div style={{ maxWidth: 560, margin: "20px auto", textAlign: "center" }}>
-            <div style={{ fontSize: 40, marginBottom: 10 }}>💬</div>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}><ChatIllustration /></div>
             <div style={{ fontSize: 17, fontWeight: "bold", color: NAVY, marginBottom: 6 }}>
               {greetingName ? `Hi ${greetingName}, how can I help?` : "How can I help?"}
             </div>
@@ -96,7 +110,7 @@ function ChatPanel({ title = "CIHE SmartAssist", subtitle = "Your AI campus assi
                   onClick={() => sendMessage(p)}
                   style={{
                     padding: "9px 16px", borderRadius: 20, border: `1px solid ${NAVY}`,
-                    background: "white", color: NAVY, fontSize: 12.5, cursor: "pointer",
+                    background: "#fffaf3", color: NAVY, fontSize: 12.5, cursor: "pointer",
                   }}
                 >
                   {p}
@@ -109,15 +123,11 @@ function ChatPanel({ title = "CIHE SmartAssist", subtitle = "Your AI campus assi
         <div style={{ maxWidth: 680, margin: "0 auto", display: "flex", flexDirection: "column", gap: 14 }}>
           {messages.map((m, i) => (
             <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
-              {m.role === "bot" && (
-                <div style={{ width: 30, height: 30, borderRadius: "50%", background: NAVY, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, marginRight: 8, flexShrink: 0 }}>
-                  🤖
-                </div>
-              )}
+              {m.role === "bot" && <div style={{ marginRight: 8 }}><BotAvatar size={30} /></div>}
               <div style={{ maxWidth: "75%" }}>
                 <div
                   style={{
-                    background: m.role === "user" ? NAVY : "white",
+                    background: m.role === "user" ? NAVY : "#fffaf3",
                     color: m.role === "user" ? "white" : "#222",
                     padding: "11px 16px",
                     borderRadius: m.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
@@ -143,10 +153,8 @@ function ChatPanel({ title = "CIHE SmartAssist", subtitle = "Your AI campus assi
 
           {sending && (
             <div style={{ display: "flex", alignItems: "center" }}>
-              <div style={{ width: 30, height: 30, borderRadius: "50%", background: NAVY, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, marginRight: 8, flexShrink: 0 }}>
-                🤖
-              </div>
-              <div style={{ background: "white", borderRadius: "16px 16px 16px 4px", padding: "11px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+              <div style={{ marginRight: 8 }}><BotAvatar size={30} /></div>
+              <div style={{ background: "#fffaf3", borderRadius: "16px 16px 16px 4px", padding: "11px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
                 <TypingDots />
               </div>
             </div>
@@ -156,7 +164,7 @@ function ChatPanel({ title = "CIHE SmartAssist", subtitle = "Your AI campus assi
       </div>
 
       {/* INPUT */}
-      <div style={{ padding: "16px 24px 20px", background: "white", borderTop: "1px solid #e8ecf1", flexShrink: 0 }}>
+      <div style={{ padding: "16px 24px 20px", background: "#fffaf3", borderTop: "1px solid #e3d9c6", flexShrink: 0 }}>
         <div style={{ maxWidth: 680, margin: "0 auto", display: "flex", gap: 10 }}>
           <input
             value={input}
