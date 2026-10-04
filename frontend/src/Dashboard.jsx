@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Footer from "./Footer";
 import AttendanceReport from "./AttendanceReport";
+import ChatPanel from "./ChatPanel";
 import { WEEKDAYS, SEMESTERS, SEMESTER_OPTIONS, ALL_UNITS, buildWeeks, addDays, formatWeekRange, formatDMY, todayStr, weekdayIndex } from "./scheduleUtils";
 
 const NAVY = "#0f2a52";
@@ -9,7 +9,8 @@ const NAVY_LIGHT = "#1c3f6e";
 const GOLD = "#e8a020";
 
 const sidebarNavItems = [
-  { id: "dashboard", label: "Dashboard", icon: "🏠" },
+  { id: "chat", label: "AI Chat", icon: "💬" },
+  { id: "dashboard", label: "Overview", icon: "🏠" },
   { id: "profile", label: "My Profile", icon: "👤" },
   { id: "courses", label: "My Courses", icon: "📚" },
   { id: "assessments", label: "Assessments", icon: "📝" },
@@ -35,7 +36,7 @@ function daysUntil(dateStr) {
 }
 
 function Dashboard() {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("chat");
   const [activeUnit, setActiveUnit] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -406,7 +407,13 @@ function Dashboard() {
           </div>
 
           {/* MAIN CONTENT */}
-          <div style={{ flex: 1, padding: "28px 32px" }}>
+          <div style={{ flex: 1, minHeight: 0, padding: activeTab === "chat" ? 0 : "28px 32px" }}>
+
+            {activeTab === "chat" && (
+              <div style={{ height: "calc(100vh - 70px)", display: "flex", flexDirection: "column" }}>
+                <ChatPanel greetingName={studentName.split(" ")[0]} />
+              </div>
+            )}
 
             {activeTab === "dashboard" && (
               <>
@@ -774,23 +781,6 @@ function Dashboard() {
           </div>
         </div>
       </div>
-
-      <Footer />
-
-      {/* FLOATING CHATBOT BUTTON */}
-      <button
-        onClick={() => navigate("/chatbot")}
-        style={{
-          position: "fixed", bottom: 24, right: 24, zIndex: 30,
-          width: 58, height: 58, borderRadius: "50%", border: "none",
-          background: GOLD, color: "white", fontSize: 26,
-          boxShadow: "0 4px 12px rgba(0,0,0,0.25)", cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center"
-        }}
-        title="Open chatbot"
-      >
-        💬
-      </button>
     </div>
   );
 }

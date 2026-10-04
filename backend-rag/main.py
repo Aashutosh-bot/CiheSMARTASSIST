@@ -1,5 +1,6 @@
 import os
 import sys
+from collections import Counter
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -58,6 +59,22 @@ print("Index ready.")
 query_log = []
 
 
+def topic_from_source(source):
+    """
+    Turns a raw source identifier into a human-readable topic for the admin
+    "most asked questions by field" analytics. Moodle sources look like
+    "moodle::course14::Fees and Payment" - we use the last segment. Local
+    document sources look like "fees_and_payment.txt" - we strip the
+    extension and title-case the underscores.
+    """
+    if not source:
+        return "Unmatched"
+    if "::" in source:
+        return source.split("::")[-1]
+    name = source.rsplit(".", 1)[0]
+    return name.replace("_", " ").title()
+
+
 @app.get("/")
 def read_root():
     return {"message": "Hello from CIHE SmartAssist!"}
@@ -88,7 +105,7 @@ def chat(request: ChatRequest):
 
     # If nothing relevant enough was found, don't let the AI guess/hallucinate
     if not results or results[0]["score"] < RELEVANCE_THRESHOLD:
-        query_log.insert(0, {"question": request.message, "status": "Escalated"})
+        query_log.insert(0, {"question": request.message, "status": "Escalated", "topic": "Unmatched"})
         return {
             "text": "I'm not sure - try Student Services.",
             "sources": ["Student Handbook"],
@@ -98,7 +115,11 @@ def chat(request: ChatRequest):
     best_match = results[0]
     answer_text = generate_answer(request.message, best_match["text"])
 
-    query_log.insert(0, {"question": request.message, "status": "Answered"})
+    query_log.insert(0, {
+        "question": request.message,
+        "status": "Answered",
+        "topic": topic_from_source(best_match["source"]),
+    })
 
     return {
         "text": answer_text,
@@ -118,6 +139,34 @@ def dashboard():
         "satisfactionRate": satisfaction,
         "documentsIndexed": len(set(sources)),
         "recentQueries": query_log[:5],
+    }
+
+
+@app.get("/api/chat-insights")
+def chat_insights():
+    """
+    Admin-facing chatbot analytics: how many questions are coming in, how
+    many get answered vs escalated, which exact questions are asked most
+    often, and which topics/fields (derived from the matched source
+    document) students ask about most. Powers the admin "Chatbot Insights"
+    tab so staff can see what students actually need help with.
+    """
+    total = len(query_log)
+    answered = len([q for q in query_log if q["status"] == "Answered"])
+    escalated = total - answered
+
+    question_counts = Counter(q["question"].strip().lower() for q in query_log if q["question"].strip())
+    topic_counts = Counter(q.get("topic") or "Unmatched" for q in query_log)
+
+    top_questions = [{"question": q, "count": c} for q, c in question_counts.most_common(10)]
+    top_topics = [{"topic": t, "count": c} for t, c in topic_counts.most_common(10)]
+
+    return {
+        "totalQueries": total,
+        "answered": answered,
+        "escalated": escalated,
+        "topQuestions": top_questions,
+        "topTopics": top_topics,
     }
 
 

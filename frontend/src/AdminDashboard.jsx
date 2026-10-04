@@ -11,7 +11,7 @@ function AdminDashboard() {
   const [attendance, setAttendance] = useState([]);
   const [assessments, setAssessments] = useState([]);
   const [timetableSessions, setTimetableSessions] = useState([]);
-  const [activeTab, setActiveTab] = useState("units");
+  const [activeTab, setActiveTab] = useState("insights");
   const [newUnit, setNewUnit] = useState({ code: "", name: "", semester: DEFAULT_SEMESTER, totalSeats: "" });
   const [newStudent, setNewStudent] = useState({ name: "", email: "", studentId: "", joiningDate: "", unitCodes: [] });
   const [editingId, setEditingId] = useState(null);
@@ -31,6 +31,7 @@ function AdminDashboard() {
   const [moodleAttendanceRecords, setMoodleAttendanceRecords] = useState([]);
   const [moodleAttendanceRecordsLoaded, setMoodleAttendanceRecordsLoaded] = useState(false);
   const [moodleAttendanceRecordsLoading, setMoodleAttendanceRecordsLoading] = useState(false);
+  const [chatInsights, setChatInsights] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -49,6 +50,7 @@ function AdminDashboard() {
     fetch("/api/timetable").then(r => r.json()).then(setTimetableSessions);
     fetch("/api/moodle/assignments").then(r => r.json()).then(setMoodleAssignments);
     fetch("/api/moodle/students").then(r => r.json()).then(setMoodleStudents);
+    fetch("/api/chat-insights").then(r => r.json()).then(setChatInsights).catch(() => setChatInsights(null));
   }
 
   function loadMoodleSubmissions() {
@@ -260,12 +262,13 @@ function AdminDashboard() {
 
       <div style={{ background: "#0f2a52", padding: "0 30px", display: "flex", gap: 4, flexWrap: "wrap" }}>
         {[
+          { id: "insights", label: "Chatbot Insights" },
+          { id: "moodle", label: "Moodle Live Data" },
           { id: "units", label: "Manage Units" },
           { id: "students", label: "Manage Students" },
           { id: "attendance", label: "Attendance" },
           { id: "assessments", label: "Assessments" },
-          { id: "timetable", label: "Timetable" },
-          { id: "moodle", label: "Moodle Live Data" }
+          { id: "timetable", label: "Timetable" }
         ].map(t => (
           <button
             key={t.id}
@@ -282,6 +285,81 @@ function AdminDashboard() {
       </div>
 
       <div style={{ padding: 30, maxWidth: 950, margin: "0 auto" }}>
+
+        {activeTab === "insights" && (
+          <div>
+            <div style={{ fontSize: 20, fontWeight: "bold", color: "#0f2a52", marginBottom: 6 }}>Chatbot Insights</div>
+            <div style={{ fontSize: 12, color: "#888", marginBottom: 20 }}>
+              What students are actually asking SmartAssist, and which questions it couldn't answer.
+            </div>
+
+            {!chatInsights && (
+              <div style={{ background: "white", borderRadius: 8, padding: 24, textAlign: "center", color: "#999", fontSize: 13, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                Loading chatbot insights...
+              </div>
+            )}
+
+            {chatInsights && (
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 28 }}>
+                  <div style={{ background: "white", borderRadius: 8, padding: "18px 20px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                    <div style={{ fontSize: 12, color: "#888" }}>Total Questions Asked</div>
+                    <div style={{ fontSize: 28, fontWeight: "bold", color: "#0f2a52", marginTop: 4 }}>{chatInsights.totalQueries}</div>
+                  </div>
+                  <div style={{ background: "white", borderRadius: 8, padding: "18px 20px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                    <div style={{ fontSize: 12, color: "#888" }}>Answered by AI</div>
+                    <div style={{ fontSize: 28, fontWeight: "bold", color: "#155724", marginTop: 4 }}>{chatInsights.answered}</div>
+                  </div>
+                  <div style={{ background: "white", borderRadius: 8, padding: "18px 20px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                    <div style={{ fontSize: 12, color: "#888" }}>Escalated (unanswered)</div>
+                    <div style={{ fontSize: 28, fontWeight: "bold", color: "#dc3545", marginTop: 4 }}>{chatInsights.escalated}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: "bold", color: "#0f2a52", marginBottom: 10 }}>Most Asked Questions</div>
+                    <div style={{ background: "white", borderRadius: 8, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                      {chatInsights.topQuestions.length === 0 && (
+                        <div style={{ padding: 16, fontSize: 13, color: "#999" }}>No questions asked yet.</div>
+                      )}
+                      {chatInsights.topQuestions.map((q, i) => (
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "10px 14px", borderBottom: i < chatInsights.topQuestions.length - 1 ? "1px solid #f0f0f0" : "none" }}>
+                          <div style={{ fontSize: 12.5, color: "#333" }}>{q.question}</div>
+                          <div style={{ fontSize: 12, fontWeight: "bold", color: "#0f2a52", whiteSpace: "nowrap" }}>×{q.count}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: "bold", color: "#0f2a52", marginBottom: 10 }}>Most Asked Topics / Fields</div>
+                    <div style={{ background: "white", borderRadius: 8, padding: "14px 16px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                      {chatInsights.topTopics.length === 0 && (
+                        <div style={{ fontSize: 13, color: "#999" }}>No topics recorded yet.</div>
+                      )}
+                      {chatInsights.topTopics.map((t, i) => {
+                        const max = chatInsights.topTopics[0].count || 1;
+                        const pct = Math.round((t.count / max) * 100);
+                        return (
+                          <div key={i} style={{ marginBottom: 12 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#333", marginBottom: 4 }}>
+                              <span>{t.topic}</span>
+                              <span style={{ fontWeight: "bold" }}>{t.count}</span>
+                            </div>
+                            <div style={{ background: "#eef1f5", borderRadius: 6, height: 8 }}>
+                              <div style={{ width: `${pct}%`, background: t.topic === "Unmatched" ? "#dc3545" : "#0f2a52", height: 8, borderRadius: 6 }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {activeTab === "units" && (
           <div>
