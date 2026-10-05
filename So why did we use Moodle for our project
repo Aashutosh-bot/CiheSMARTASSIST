@@ -1,0 +1,26 @@
+Why Moodle Was Used
+
+Moodle was selected as an additional knowledge source for CIHE SmartAssist because it is an important platform where students access their course-related learning materials and academic resources.
+
+The original SmartAssist system mainly retrieves information from static CIHE documents. However, student information is not always contained in a single handbook or PDF. Moodle can contain course-specific resources such as lecture materials, pages, files, assignments, announcements, links, and other learning content.
+
+By integrating Moodle into SmartAssist, the system can retrieve relevant information from a structured learning environment rather than depending only on manually collected documents.
+
+Benefits of Moodle Integration
+
+* Centralised learning information: Moodle provides a structured location for course-related resources.
+* Improved information coverage: SmartAssist can access information that may not be available in the student handbook or other static documents.
+* Course-specific responses: Moodle content can provide more relevant information depending on the student’s course or subject.
+* Reduced manual document management: Instead of manually collecting and updating every document, Moodle content can be loaded into the SmartAssist knowledge base.
+* Better RAG performance: Moodle content can be processed, embedded, and retrieved using the existing Retrieval-Augmented Generation (RAG) pipeline.
+* More realistic student support: Since students already use Moodle for their studies, integrating its resources makes SmartAssist more closely connected to their existing academic environment.
+
+Role in CIHE SmartAssist
+
+The Moodle integration acts as an additional data source for the RAG system. Moodle resources can be collected and processed into searchable content. When a student asks a question, SmartAssist can retrieve relevant information from both CIHE documents and Moodle resources before generating an answer.
+
+This approach helps make the assistant more comprehensive while maintaining the project’s principle of providing answers based on available academic sources rather than allowing the AI to guess.
+
+Future Potential
+
+Moodle integration could later be extended to support automatic synchronisation of course materials, subject-specific information, announcements, and other authorised Moodle resources. This would allow the SmartAssist knowledge base to stay more up to date as Moodle content changes.
