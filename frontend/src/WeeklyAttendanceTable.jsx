@@ -1,6 +1,6 @@
 import { WEEKDAYS, SEMESTERS, DEFAULT_SEMESTER, buildWeeks, addDays, formatWeekRange, todayStr } from "./scheduleUtils";
 
-const NAVY = "#0f2a52";
+const NAVY = "#1c2b3a";
 
 const statusColors = {
   Present: { bg: "#d4edda", color: "#155724" },
@@ -64,8 +64,8 @@ export default function WeeklyAttendanceTable({ unitCodes, sessions, records }) 
     return { week, dayCells, weeklyPct, runningPct };
   });
 
-  const thStyle = { background: NAVY, color: "white", fontWeight: "bold", padding: "10px 12px", fontSize: 12, textAlign: "center", border: "1px solid #0a2140" };
-  const tdStyle = (shaded) => ({ background: shaded ? "#f5f7fa" : "white", color: "#111", padding: "9px 12px", fontSize: 12.5, textAlign: "center", border: "1px solid #dde3ea" });
+  const thStyle = { background: NAVY, color: "#fffaf3", fontWeight: "bold", padding: "10px 12px", fontSize: 12, textAlign: "center", border: "1px solid #0a2140" };
+  const tdStyle = (shaded) => ({ background: shaded ? "#f3ede1" : "#fffaf3", color: "#111", padding: "9px 12px", fontSize: 12.5, textAlign: "center", border: "1px solid #e3d9c6" });
 
   if (unitSessions.length === 0) {
     return <div style={{ fontSize: 13, color: "#888" }}>No timetable has been set up for {codes.length > 1 ? "these units" : "this unit"} yet, so attendance cannot be calculated.</div>;

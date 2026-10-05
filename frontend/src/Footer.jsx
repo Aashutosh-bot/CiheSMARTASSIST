@@ -88,11 +88,11 @@ export default function Footer() {
                 width: 46,
                 height: 46,
                 borderRadius: "50%",
-                border: "2px solid #e8a020",
+                border: "2px solid #c2862a",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#e8a020",
+                color: "#c2862a",
                 fontSize: 18,
               }}
             >

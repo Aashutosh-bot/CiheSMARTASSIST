@@ -6,3 +6,4 @@ __pycache__/
 debug_output.json
 test_moodle.py
 .env
+backend-data/data.json

@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
 const app = express();
 
 app.use(cors());
@@ -18,20 +20,53 @@ app.post("/api/admin-login", (req, res) => {
   }
 });
 
-// --- Units ---
-let units = [
+// --- Persistence ---
+// Everything below lived only in memory, so every restart of this server
+// (which happens often during development/testing) wiped out anything the
+// admin had added - units, students, assessments, timetable sessions, all
+// reset back to the seed data below. We now load from data.json on startup
+// and write back to it after every change, so real data survives restarts.
+const DATA_FILE = path.join(__dirname, "data.json");
+
+const seedUnits = [
   { code: "ICT307", name: "AI-Based Systems Development", semester: "Semester 2, 2026", totalSeats: 30, enrolled: 0 },
   { code: "ICT301", name: "Information Technology Project Management", semester: "Semester 2, 2026", totalSeats: 30, enrolled: 0 },
   { code: "ICT305", name: "Topics in IT", semester: "Semester 2, 2026", totalSeats: 30, enrolled: 0 },
   { code: "ICT210", name: "Big Data for Software Development", semester: "Semester 2, 2026", totalSeats: 30, enrolled: 0 }
 ];
-
-// --- Students ---
-let students = [
+const seedStudents = [
   { id: 1, name: "Roshan Ghimire", email: "student@cihe.edu.au", password: "password123", studentId: "CIHE-2026-00123", joiningDate: "2026-02-01", unitCodes: ["ICT307"] }
 ];
-let nextStudentId = 2;
-let nextStudentSeq = 124;
+const seedAssessments = [
+  { id: 1, unitCode: "ICT307", title: "Assessment 1: Project Initiation", dueDate: "2026-08-23", weight: 20, description: "Initial project proposal and scope document." }
+];
+const seedTimetableSessions = [
+  { id: 1, unitCode: "ICT307", dayOfWeek: "Mon", startTime: "10:00", endTime: "12:00", teacher: "Dr. Sarah Chen", room: "B1.12", mode: "Lecture", location: "Building B, Level 1", semester: "Semester 2, 2026" },
+  { id: 2, unitCode: "ICT301", dayOfWeek: "Tue", startTime: "13:00", endTime: "15:00", teacher: "Dr. James Cooper", room: "A2.05", mode: "Workshop", location: "Building A, Level 2", semester: "Semester 2, 2026" },
+  { id: 3, unitCode: "ICT305", dayOfWeek: "Wed", startTime: "09:00", endTime: "11:00", teacher: "Dr. Priya Nair", room: "C3.08", mode: "Lecture", location: "Building C, Level 3", semester: "Semester 2, 2026" },
+  { id: 4, unitCode: "ICT210", dayOfWeek: "Thu", startTime: "14:00", endTime: "16:00", teacher: "Dr. Marcus Lee", room: "B2.10", mode: "Lab", location: "Building B, Level 2", semester: "Semester 2, 2026" }
+];
+
+function loadPersistedData() {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      return JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
+    }
+  } catch (err) {
+    console.error("[persistence] Could not read data.json, starting from seed data:", err.message);
+  }
+  return null;
+}
+
+const persisted = loadPersistedData();
+
+// --- Units ---
+let units = (persisted && persisted.units) || seedUnits;
+
+// --- Students ---
+let students = (persisted && persisted.students) || seedStudents;
+let nextStudentId = (persisted && persisted.nextStudentId) || 2;
+let nextStudentSeq = (persisted && persisted.nextStudentSeq) || 124;
 
 function generateStudentId(joiningDate) {
   const year = joiningDate ? new Date(joiningDate).getFullYear() : new Date().getFullYear();
@@ -48,11 +83,23 @@ function adjustEnrollment(unitCode, delta) {
 }
 
 // --- Notifications ---
-let notifications = [];
-let nextNotificationId = 1;
+let notifications = (persisted && persisted.notifications) || [];
+let nextNotificationId = (persisted && persisted.nextNotificationId) || 1;
 
 function notify(email, message) {
   notifications.push({ id: nextNotificationId++, email, message, time: new Date().toISOString(), read: false });
+}
+
+function saveData() {
+  const snapshot = {
+    units, students, assessments, timetableSessions, attendance, notifications,
+    nextStudentId, nextStudentSeq, nextNotificationId, nextAttendanceId, nextAssessmentId, nextTimetableId
+  };
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(snapshot, null, 2));
+  } catch (err) {
+    console.error("[persistence] Could not write data.json:", err.message);
+  }
 }
 
 app.get("/api/notifications", (req, res) => {
@@ -64,12 +111,13 @@ app.get("/api/notifications", (req, res) => {
 app.post("/api/notifications/read", (req, res) => {
   const { email } = req.body;
   notifications.forEach(n => { if (n.email === email) n.read = true; });
+  saveData();
   res.json({ success: true });
 });
 
 // --- Attendance ---
-let attendance = [];
-let nextAttendanceId = 1;
+let attendance = (persisted && persisted.attendance) || [];
+let nextAttendanceId = (persisted && persisted.nextAttendanceId) || 1;
 
 app.get("/api/attendance", (req, res) => {
   res.json(attendance);
@@ -92,19 +140,19 @@ app.post("/api/attendance", (req, res) => {
   const finalUnitCode = unitCode || (student.unitCodes && student.unitCodes[0]) || "";
   const record = { id: nextAttendanceId++, studentId: Number(studentId), unitCode: finalUnitCode, date, status };
   attendance.push(record);
+  saveData();
   res.json({ success: true, attendance });
 });
 
 app.delete("/api/attendance/:id", (req, res) => {
   attendance = attendance.filter(a => a.id !== Number(req.params.id));
+  saveData();
   res.json({ success: true, attendance });
 });
 
 // --- Assessments ---
-let assessments = [
-  { id: 1, unitCode: "ICT307", title: "Assessment 1: Project Initiation", dueDate: "2026-08-23", weight: 20, description: "Initial project proposal and scope document." }
-];
-let nextAssessmentId = 2;
+let assessments = (persisted && persisted.assessments) || seedAssessments;
+let nextAssessmentId = (persisted && persisted.nextAssessmentId) || 2;
 
 app.get("/api/assessments", (req, res) => {
   const { unitCode } = req.query;
@@ -122,11 +170,13 @@ app.post("/api/assessments", (req, res) => {
     notify(s.email, `New assessment posted for ${unitCode}: "${title}" — due ${dueDate}.`);
   });
 
+  saveData();
   res.json({ success: true, assessments });
 });
 
 app.delete("/api/assessments/:id", (req, res) => {
   assessments = assessments.filter(a => a.id !== Number(req.params.id));
+  saveData();
   res.json({ success: true, assessments });
 });
 
@@ -147,7 +197,19 @@ app.post("/api/set-password", (req, res) => {
   if (student.password) return res.status(400).json({ success: false, message: "Password already set. Please log in." });
   if (!password || password.length < 6) return res.status(400).json({ success: false, message: "Password must be at least 6 characters." });
   student.password = password;
+  saveData();
   res.json({ success: true, name: student.name });
+});
+
+app.post("/api/change-password", (req, res) => {
+  const { email, currentPassword, newPassword } = req.body;
+  const student = students.find(s => s.email === email);
+  if (!student) return res.status(404).json({ success: false, message: "Student not found." });
+  if (student.password !== currentPassword) return res.status(401).json({ success: false, message: "Current password is incorrect." });
+  if (!newPassword || newPassword.length < 6) return res.status(400).json({ success: false, message: "New password must be at least 6 characters." });
+  student.password = newPassword;
+  saveData();
+  res.json({ success: true });
 });
 
 app.post("/api/login", (req, res) => {
@@ -168,22 +230,19 @@ app.post("/api/units", (req, res) => {
   if (!code || !name) return res.status(400).json({ success: false, message: "Code and name required." });
   if (units.find(u => u.code === code)) return res.status(400).json({ success: false, message: "Unit code already exists." });
   units.push({ code, name, semester: semester || "Semester 2, 2026", totalSeats: Number(totalSeats) || 50, enrolled: 0 });
+  saveData();
   res.json({ success: true, units });
 });
 
 app.delete("/api/units/:code", (req, res) => {
   units = units.filter(u => u.code !== req.params.code);
+  saveData();
   res.json({ success: true, units });
 });
 
 // --- Timetable ---
-let timetableSessions = [
-  { id: 1, unitCode: "ICT307", dayOfWeek: "Mon", startTime: "10:00", endTime: "12:00", teacher: "Dr. Sarah Chen", room: "B1.12", mode: "Lecture", location: "Building B, Level 1", semester: "Semester 2, 2026" },
-  { id: 2, unitCode: "ICT301", dayOfWeek: "Tue", startTime: "13:00", endTime: "15:00", teacher: "Dr. James Cooper", room: "A2.05", mode: "Workshop", location: "Building A, Level 2", semester: "Semester 2, 2026" },
-  { id: 3, unitCode: "ICT305", dayOfWeek: "Wed", startTime: "09:00", endTime: "11:00", teacher: "Dr. Priya Nair", room: "C3.08", mode: "Lecture", location: "Building C, Level 3", semester: "Semester 2, 2026" },
-  { id: 4, unitCode: "ICT210", dayOfWeek: "Thu", startTime: "14:00", endTime: "16:00", teacher: "Dr. Marcus Lee", room: "B2.10", mode: "Lab", location: "Building B, Level 2", semester: "Semester 2, 2026" }
-];
-let nextTimetableId = 5;
+let timetableSessions = (persisted && persisted.timetableSessions) || seedTimetableSessions;
+let nextTimetableId = (persisted && persisted.nextTimetableId) || 5;
 
 app.get("/api/timetable", (req, res) => {
   const { unitCode } = req.query;
@@ -209,6 +268,7 @@ app.post("/api/timetable", (req, res) => {
     semester: semester || "Semester 2, 2026"
   };
   timetableSessions.push(session);
+  saveData();
   res.json({ success: true, timetableSessions });
 });
 
@@ -226,11 +286,13 @@ app.put("/api/timetable/:id", (req, res) => {
   if (mode !== undefined) session.mode = mode;
   if (location !== undefined) session.location = location;
   if (semester !== undefined) session.semester = semester;
+  saveData();
   res.json({ success: true, timetableSessions });
 });
 
 app.delete("/api/timetable/:id", (req, res) => {
   timetableSessions = timetableSessions.filter(t => t.id !== Number(req.params.id));
+  saveData();
   res.json({ success: true, timetableSessions });
 });
 
@@ -266,6 +328,7 @@ app.post("/api/students", (req, res) => {
     const unit = units.find(u => u.code === code);
     if (unit) notify(email, `You have been enrolled in ${unit.code} — ${unit.name}.`);
   });
+  saveData();
   res.json({ success: true, students });
 });
 
@@ -295,6 +358,7 @@ app.put("/api/students/:id", (req, res) => {
   if (studentId && studentId.trim()) student.studentId = studentId.trim();
   if (joiningDate !== undefined) student.joiningDate = joiningDate;
 
+  saveData();
   res.json({ success: true, students });
 });
 
@@ -306,86 +370,8 @@ app.delete("/api/students/:id", (req, res) => {
   }
   students = students.filter(s => s.id !== id);
   attendance = attendance.filter(a => a.studentId !== id);
+  saveData();
   res.json({ success: true, students });
-});
-
-// --- Chatbot ---
-const answers = [
-  {
-    keys: ["semester", "date", "calendar"],
-    text: "The Semester 2, 2026 academic calendar runs from 24 July to 20 November 2026, with the census date on 17 August 2026 and final exams from 9-20 November 2026.",
-    sources: ["Academic Calendar 2026"]
-  },
-  {
-    keys: ["fee", "pay", "tuition"],
-    text: "Tuition is $3,850 per unit ($15,400 per semester at a full-time load of 4 units). Fees are due by 10 January for Semester 1 and 20 June for Semester 2, payable via card, bank transfer, or BPAY through the Student Portal. If payment is not received within 2 days of the due date, a $150 late payment fee is applied, and your enrolment may be placed on hold until the balance is cleared.",
-    sources: ["Fee Schedule 2026", "Student Finance Policy v3.2"]
-  },
-  {
-    keys: ["library", "book", "borrow"],
-    text: "The CIHE Library holds over 45,000 physical titles and access to 200,000+ e-books and academic journals across IT, Business, and Health disciplines. Located on Level 2, Building A. Open Mon-Fri 8am-9pm, Sat 9am-5pm. Students can borrow up to 10 items at a time for a 3-week loan period.",
-    sources: ["Campus Guide 2026", "Library Services Handbook"]
-  },
-  {
-    keys: ["late", "submission", "penalty", "extension"],
-    text: "Late submissions lose 10% of the total available marks per calendar day. Submissions more than 10 days late without an approved extension will receive a mark of zero.",
-    sources: ["Assessment Policy v4.1"]
-  },
-  {
-    keys: ["enrol", "enroll", "entry", "requirement", "bit"],
-    getText: () => {
-      const totalSeats = units.reduce((sum, u) => sum + u.totalSeats, 0);
-      const totalEnrolled = units.reduce((sum, u) => sum + u.enrolled, 0);
-      return `Across current units, there are ${totalSeats} total seats, with ${totalEnrolled} students enrolled and ${totalSeats - totalEnrolled} seats remaining. Entry requires completion of Year 12 (or equivalent), an IELTS score of 6.0 (no band below 5.5), and certified academic transcripts.`;
-    },
-    sources: ["Course Catalog 2026", "Admissions Office — Live Enrollment System"]
-  },
-  {
-    keys: ["assessment", "assignment", "due"],
-    getText: () => {
-      if (assessments.length === 0) return "There are currently no assessments scheduled.";
-      const list = assessments.map(a => `${a.title} (${a.unitCode}) — due ${a.dueDate}`).join("; ");
-      return `Upcoming assessments: ${list}.`;
-    },
-    sources: ["Unit Assessment Schedule 2026"]
-  }
-];
-
-let queryLog = [];
-
-function findAnswer(text) {
-  text = text.toLowerCase();
-  for (const a of answers) {
-    if (a.keys.some(k => text.includes(k))) {
-      return { text: a.getText ? a.getText() : a.text, sources: a.sources };
-    }
-  }
-  return { text: "I'm not sure — try Student Services.", sources: ["Student Handbook"], unmatched: true };
-}
-
-app.post("/api/chat", (req, res) => {
-  const message = req.body.message || "";
-  const result = findAnswer(message);
-  queryLog.unshift({
-    question: message,
-    time: new Date().toISOString(),
-    status: result.unmatched ? "Escalated" : "Answered"
-  });
-  queryLog = queryLog.slice(0, 20);
-  res.json(result);
-});
-
-app.get("/api/dashboard", (req, res) => {
-  const total = queryLog.length;
-  const answered = queryLog.filter(q => q.status === "Answered").length;
-  const satisfaction = total > 0 ? Math.round((answered / total) * 100) : 100;
-  res.json({
-    totalQueries: total,
-    avgResponseTime: "1.2s",
-    satisfactionRate: satisfaction,
-    documentsIndexed: answers.length,
-    recentQueries: queryLog.slice(0, 5)
-  });
 });
 
 app.listen(5000, () => console.log("Server running on http://localhost:5000"));
