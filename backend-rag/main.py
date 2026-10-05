@@ -4,15 +4,23 @@ from collections import Counter
 from datetime import datetime
 from typing import Optional
 import requests
-from fastapi import FastAPI
+import logging
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from auth_guard import NODE_BACKEND_URL, check_rate_limit, current_user, require_roles
+from guard import MAX_QUESTION_LEN, looks_like_injection, sanitize
 from rag_engine import build_index, search
 from generator import generate_answer
 
+security_log = logging.getLogger("smartassist.security")
+logging.basicConfig(level=logging.INFO)
+STAFF = ("admin", "lecturer")
+
 # The Node/Express backend (backend-data) holds SmartAssist's own student
 # records, unit enrollments and class timetable - separate from Moodle.
-NODE_BACKEND_URL = os.getenv("NODE_BACKEND_URL", "http://localhost:5000")
+# (NODE_BACKEND_URL now lives in auth_guard.py, which also validates sessions against it.)
 WEEKDAY_ORDER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 # moodle_loader.py lives in a sibling folder (../moodle-integration), not here.
@@ -25,35 +33,46 @@ from moodle_loader import (
     fetch_moodle_attendance_records,
 )
 
-app = FastAPI()
+# No interactive API docs in production (A2: minimise attack surface).
+_prod = os.getenv("APP_ENV") == "production"
+app = FastAPI(docs_url=None if _prod else "/docs", redoc_url=None, openapi_url=None if _prod else "/openapi.json")
 
 # Allow Roshan's React dev server (port 3000) to call this API.
 # Without this, the browser blocks the request even if the server responds fine -
 # this is a browser security feature called CORS, not a bug in either of our code.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "X-CSRF-Token"],
 )
 
 
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@app.exception_handler(Exception)
+async def generic_error(request: Request, exc: Exception):
+    # Fail secure (A2): log details server-side, return nothing internal to the client.
+    security_log.exception("Unhandled error on %s", request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error."})
+
+
 class QuestionRequest(BaseModel):
-    question: str
+    question: str = Field(min_length=1, max_length=MAX_QUESTION_LEN)
 
 
 class ChatRequest(BaseModel):
-    message: str
-    email: Optional[str] = None
-
-
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-
-VALID_EMAIL = "student@cihe.edu.au"
-VALID_PASSWORD = "password123"
+    # Identity comes from the verified session, never from the request body (IDOR fix).
+    message: str = Field(min_length=1, max_length=MAX_QUESTION_LEN)
 
 # Below this similarity score, we treat the match as "not actually relevant"
 # and escalate instead of letting the AI generate an answer from a weak match.
@@ -66,6 +85,12 @@ print("Index ready.")
 # In-memory log of questions asked this session (resets on server restart).
 # A real database would replace this in a later iteration.
 query_log = []
+QUERY_LOG_MAX = 1000
+
+
+def log_query(entry):
+    query_log.insert(0, entry)
+    del query_log[QUERY_LOG_MAX:]  # bounded: unbounded growth would be a memory DoS
 
 
 def topic_from_source(source):
@@ -142,18 +167,19 @@ def answer_deadline(email):
             f"Status: {status_phrase}.")
 
 
-def answer_next_class(email):
+def answer_next_class(email, cookies=None):
+    # The student's own profile and the timetable are fetched with THEIR session, so Node's RBAC still applies.
     try:
-        students = requests.get(f"{NODE_BACKEND_URL}/api/students", timeout=5).json()
+        me = requests.get(f"{NODE_BACKEND_URL}/api/students/me", cookies=cookies or {}, timeout=5).json()
+        student = me.get("student") if me.get("success") else None
     except Exception:
         return "I couldn't reach the SmartAssist student records service to look up your timetable. Make sure the backend-data server is running."
 
-    student = next((s for s in students if s.get("email") == email), None)
     if not student or not student.get("unitCodes"):
         return "You don't have any units assigned on your SmartAssist profile yet, so I can't find your class schedule — ask your admin to assign your units."
 
     try:
-        sessions = requests.get(f"{NODE_BACKEND_URL}/api/timetable", timeout=5).json()
+        sessions = requests.get(f"{NODE_BACKEND_URL}/api/timetable", cookies=cookies or {}, timeout=5).json()
     except Exception:
         return "I couldn't reach the timetable service right now — try again in a moment."
 
@@ -192,49 +218,55 @@ PERSONAL_INTENT_HANDLERS = {
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello from CIHE SmartAssist!"}
-
-
-@app.post("/api/login")
-def login(request: LoginRequest):
-    if request.email == VALID_EMAIL and request.password == VALID_PASSWORD:
-        return {"success": True}
-    return {"success": False, "message": "Invalid email or password."}
+    return {"message": "CIHE SmartAssist RAG service"}
 
 
 @app.post("/api/query")
-def ask_question(request: QuestionRequest):
-    """Original endpoint - kept for your own testing via /docs."""
-    results = search(index, chunks, sources, request.question, top_k=1)
+def ask_question(request: QuestionRequest, user: dict = Depends(require_roles("admin"))):
+    """Original testing endpoint - now admin-only."""
+    results = search(index, chunks, sources, sanitize(request.question), top_k=1, role=user["role"])
     if not results:
         return {"answer": "I couldn't find anything relevant to that question.", "confidence": 0.0, "source": None}
     best_match = results[0]
-    answer = generate_answer(request.question, best_match["text"])
+    answer = generate_answer(sanitize(request.question), best_match["text"])
     return {"answer": answer, "confidence": round(best_match["score"], 3), "source": best_match["source"]}
 
 
 @app.post("/api/chat")
-def chat(request: ChatRequest):
-    """Matches Roshan's frontend contract: { message } -> { text, sources }."""
+def chat(request: ChatRequest, user: dict = Depends(current_user)):
+    """Matches Roshan's frontend contract: { message } -> { text, sources }. Requires a valid session."""
+    check_rate_limit(user["email"])  # A1: the model is expensive, so cap per-user request rate
+    message = sanitize(request.message)
+    if not message:
+        raise HTTPException(status_code=400, detail="Message is required.")
 
-    # Personal questions ("what's MY attendance", "when's MY next class") can
-    # never be answered from static documents - handle those with real data
-    # for the logged-in student before falling through to document search.
-    intent = detect_personal_intent(request.message)
+    # I4: refuse obvious prompt-injection attempts before they reach retrieval or the model.
+    if looks_like_injection(message):
+        security_log.warning("prompt_injection_blocked user=%s", user["email"])
+        log_query({"question": "[blocked]", "status": "Escalated", "topic": "Blocked"})
+        return {"text": "I can only help with questions about CIHE student services and your own study information.",
+                "sources": [], "unmatched": True}
+
+    # Personal questions are answered from the SESSION's identity only, and only for students.
+    intent = detect_personal_intent(message)
     if intent:
         topic, handler = PERSONAL_INTENT_HANDLERS[intent]
-        if not request.email:
-            answer_text = "I'd need you to be logged in to look that up for you personally - please log in and ask again."
+        if user["role"] != "student":
+            answer_text = "Personal lookups like this are only available to students for their own records."
+        elif intent == "next_class":
+            answer_text = handler(user["email"], user["cookies"])
         else:
-            answer_text = handler(request.email)
-        query_log.insert(0, {"question": request.message, "status": "Answered", "topic": topic})
+            answer_text = handler(user["email"])
+        log_query({"question": message, "status": "Answered", "topic": topic})
         return {"text": answer_text, "sources": [f"Live {topic} Data"]}
 
-    results = search(index, chunks, sources, request.message, top_k=1)
+    # C4: retrieval is filtered by role; I4: retrieved text that itself contains injected instructions is dropped.
+    results = [r for r in search(index, chunks, sources, message, top_k=3, role=user["role"])
+               if not looks_like_injection(r["text"])]
 
     # If nothing relevant enough was found, don't let the AI guess/hallucinate
     if not results or results[0]["score"] < RELEVANCE_THRESHOLD:
-        query_log.insert(0, {"question": request.message, "status": "Escalated", "topic": "Unmatched"})
+        log_query({"question": message, "status": "Escalated", "topic": "Unmatched"})
         return {
             "text": "I'm not sure - try Student Services.",
             "sources": ["Student Handbook"],
@@ -242,10 +274,10 @@ def chat(request: ChatRequest):
         }
 
     best_match = results[0]
-    answer_text = generate_answer(request.message, best_match["text"])
+    answer_text = generate_answer(message, best_match["text"])
 
-    query_log.insert(0, {
-        "question": request.message,
+    log_query({
+        "question": message,
         "status": "Answered",
         "topic": topic_from_source(best_match["source"]),
     })
@@ -257,7 +289,7 @@ def chat(request: ChatRequest):
 
 
 @app.get("/api/dashboard")
-def dashboard():
+def dashboard(user: dict = Depends(require_roles(*STAFF))):
     total = len(query_log)
     answered = len([q for q in query_log if q["status"] == "Answered"])
     satisfaction = round((answered / total) * 100) if total > 0 else 100
@@ -267,12 +299,12 @@ def dashboard():
         "avgResponseTime": "1.2s",
         "satisfactionRate": satisfaction,
         "documentsIndexed": len(set(sources)),
-        "recentQueries": query_log[:5],
+        "recentQueries": query_log[:5],  # staff only (see dependency): contains other users' questions
     }
 
 
 @app.get("/api/chat-insights")
-def chat_insights():
+def chat_insights(user: dict = Depends(require_roles("admin"))):
     """
     Admin-facing chatbot analytics: how many questions are coming in, how
     many get answered vs escalated, which exact questions are asked most
@@ -300,25 +332,25 @@ def chat_insights():
 
 
 @app.get("/api/moodle/assignments")
-def moodle_assignments():
+def moodle_assignments(user: dict = Depends(require_roles(*STAFF))):
     """Live assignment due dates pulled directly from Moodle."""
     return fetch_moodle_assignments()
 
 
 @app.get("/api/moodle/students")
-def moodle_students():
+def moodle_students(user: dict = Depends(require_roles(*STAFF))):
     """Live enrolled-student list pulled directly from Moodle, per course."""
     return fetch_moodle_enrolled_students()
 
 
 @app.get("/api/moodle/attendance")
-def moodle_attendance():
+def moodle_attendance(user: dict = Depends(require_roles(*STAFF))):
     """Live attendance session dates pulled directly from Moodle, per course."""
     return fetch_moodle_attendance_sessions()
 
 
 @app.get("/api/moodle/attendance-records")
-def moodle_attendance_records():
+def moodle_attendance_records(user: dict = Depends(require_roles(*STAFF))):
     """
     Real per-student attendance marks (Present/Late/Excused/Absent) pulled
     from Moodle's attendance roster for every session. Slower than the
@@ -329,7 +361,7 @@ def moodle_attendance_records():
 
 
 @app.get("/api/moodle/submissions")
-def moodle_submissions():
+def moodle_submissions(user: dict = Depends(require_roles(*STAFF))):
     """
     Real per-student assignment submission status, grading status, and
     grade (once graded) pulled directly from Moodle.
@@ -338,21 +370,24 @@ def moodle_submissions():
 
 
 @app.get("/api/moodle/attendance-records/student")
-def moodle_attendance_records_for_student(email: str):
+def moodle_attendance_records_for_student(email: Optional[str] = None, user: dict = Depends(current_user)):
     """
     This student's own attendance records, filtered by email - used by the
     student-facing "My Moodle" view so a student only sees their own marks.
     """
+    # Students can only ever see their own records: the ?email= parameter is ignored for them (IDOR fix).
+    email = user["email"] if user["role"] == "student" else (email or user["email"])
     records = fetch_moodle_attendance_records()
     return [r for r in records if r["student_email"] == email]
 
 
 @app.get("/api/moodle/submissions/student")
-def moodle_submissions_for_student(email: str):
+def moodle_submissions_for_student(email: Optional[str] = None, user: dict = Depends(current_user)):
     """
     This student's own assignment submission status - used by the
     student-facing "My Moodle" view.
     """
+    email = user["email"] if user["role"] == "student" else (email or user["email"])
     student = next((s for s in fetch_moodle_enrolled_students() if s["email"] == email), None)
     if not student:
         return []

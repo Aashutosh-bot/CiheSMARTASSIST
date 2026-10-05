@@ -1,0 +1,10 @@
+=== Target: http://localhost:5002 ===
+T1  Read all students with no login                            -> HTTP 401  {"success":false,"message":"Authentication required."} 
+T2  Admin login with default password admin123                 -> HTTP 401  {"success":false,"message":"Invalid email or password."} 
+T3  Create a student with no login                             -> HTTP 401  {"success":false,"message":"Authentication required."} 
+T4  Claim that account knowing only the email                  -> HTTP 400  {"success":false,"message":"Invalid activation details."} 
+T5  Read another student's attendance (IDOR)                   -> HTTP 401  {"success":false,"message":"Authentication required."} 
+T6  Delete a student with no login                             -> HTTP 401  {"success":false,"message":"Authentication required."} 
+T7  Delete a unit with no login                                -> HTTP 401  {"success":false,"message":"Authentication required."} 
+T8  20 wrong passwords in a row (any 429 = lockout?)           ->       1        5 401      15 429 
+T9  Response headers (server fingerprint / CSP)                -> Content-Security-Policy: default-src 'none';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'none';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests X-Content-Type-Options: nosniff 

@@ -7,3 +7,7 @@ debug_output.json
 test_moodle.py
 .env
 backend-data/data.json
+backend-data/audit.log
+backend-data/*.tmp
+backend-data/node_modules/
+*.log

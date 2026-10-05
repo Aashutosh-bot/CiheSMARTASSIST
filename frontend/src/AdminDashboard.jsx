@@ -124,6 +124,7 @@ function AdminDashboard() {
   }
 
   function logout() {
+    fetch("/api/logout", { method: "POST" }).catch(() => {});
     localStorage.removeItem("loggedIn");
     localStorage.removeItem("role");
     navigate("/");
@@ -158,6 +159,17 @@ function AdminDashboard() {
       return;
     }
     setNewStudent({ name: "", email: "", studentId: "", joiningDate: "", unitCodes: [] });
+    // Security: the student claims their account with this one-time code (shown once, valid 7 days).
+    alert(`Activation code for ${data.studentEmail}:\n\n${data.activationCode}\n\nGive this to the student. It is shown only once.`);
+    loadData();
+  }
+
+  async function issueActivation(id, email) {
+    if (!window.confirm(`Issue a new activation code for ${email}? This resets their password and 2FA.`)) return;
+    const res = await fetch(`/api/students/${id}/activation`, { method: "POST" });
+    const data = await res.json();
+    if (!data.success) { alert(data.message); return; }
+    alert(`New activation code for ${data.studentEmail}:\n\n${data.activationCode}\n\nShown only once.`);
     loadData();
   }
 
@@ -569,7 +581,7 @@ function AdminDashboard() {
                 Add Student
               </button>
               <div style={{ fontSize: 11, color: "#999", marginTop: 6 }}>
-                Students set their own password the first time they log in.
+                Students create their own password the first time they log in, using the one-time activation code shown after you add them.
               </div>
               {unitsWithoutTimetable(newStudent.unitCodes).length > 0 && (
                 <div style={{ fontSize: 11.5, color: "#a15c00", background: "#fff3cd", border: "1px solid #ffe69c", borderRadius: 6, padding: "8px 10px", marginTop: 8 }}>
@@ -629,9 +641,10 @@ function AdminDashboard() {
                         <td style={tdStyle}>{s.email}</td>
                         <td style={tdStyle}>{(s.unitCodes && s.unitCodes.length) ? s.unitCodes.join(", ") : "—"}</td>
                         <td style={tdStyle}>{s.joiningDate || "—"}</td>
-                        <td style={tdStyle}>{s.password ? "✅ Yes" : "⏳ Not yet"}</td>
+                        <td style={tdStyle}>{s.activationPending ? "⏳ Not yet" : "✅ Yes"}</td>
                         <td style={actionsTdStyle}>
                           <button onClick={() => startEdit(s)} style={{ background: "none", border: "none", color: "#1c2b3a", cursor: "pointer", fontSize: 12, marginRight: 12 }}>Edit</button>
+                          <button onClick={() => issueActivation(s.id, s.email)} style={{ background: "none", border: "none", color: "#1c2b3a", cursor: "pointer", fontSize: 12, marginRight: 12 }}>Activation code</button>
                           <button onClick={() => deleteStudent(s.id)} style={{ background: "none", border: "none", color: "#dc3545", cursor: "pointer", fontSize: 12 }}>Delete</button>
                         </td>
                       </tr>

@@ -66,11 +66,10 @@ function ChatPanel({ title = "CIHE SmartAssist", subtitle = "Your AI campus assi
     setInput("");
     setSending(true);
     try {
-      const email = localStorage.getItem("studentEmail") || "";
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: textToSend, email }),
+        body: JSON.stringify({ message: textToSend }),
       });
       const data = await res.json();
       setMessages(prev => [...prev, { role: "bot", text: data.text, sources: data.sources, unmatched: data.unmatched }]);

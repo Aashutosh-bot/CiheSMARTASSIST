@@ -1,0 +1,10 @@
+=== Target: http://localhost:5000 ===
+T1  Read all students with no login                            -> HTTP 200  [{"id":1,"name":"Roshan Ghimire","email":"student@cihe.edu.au","password":"password123","studentId":"CIHE-2026
+T2  Admin login with default password admin123                 -> HTTP 200  {"success":true} 
+T3  Create a student with no login                             -> HTTP 200  {"success":true,"students":[{"id":1,"name":"Roshan Ghimire","email":"student@cihe.edu.au","password":"password
+T4  Claim that account knowing only the email                  -> HTTP 200  {"success":true,"name":"Mallory"} 
+T5  Read another student's attendance (IDOR)                   -> HTTP 200  {"records":[],"rate":100,"total":0,"presentCount":0} 
+T6  Delete a student with no login                             -> HTTP 200  {"success":true,"students":[{"id":2,"name":"Mallory","email":"mallory@evil.test","password":"pwned12345678","s
+T7  Delete a unit with no login                                -> HTTP 200  {"success":true,"units":[{"code":"ICT301","name":"Information Technology Project Management","semester":"Semes
+T8  20 wrong passwords in a row (any 429 = lockout?)           ->       1       20 401 
+T9  Response headers (server fingerprint / CSP)                -> X-Powered-By: Express 

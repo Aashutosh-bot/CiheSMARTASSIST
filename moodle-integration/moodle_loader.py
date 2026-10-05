@@ -28,7 +28,7 @@ def _fetch_pages_for_course(course_id):
     }
 
     try:
-        response = requests.get(endpoint, params=params, timeout=10)
+        response = requests.post(endpoint, data=params, timeout=10)
         data = response.json()
     except Exception as e:
         print(f"[moodle_loader] Could not reach Moodle for course {course_id}: {e}")
@@ -103,7 +103,7 @@ def fetch_moodle_assignments():
         params[f"courseids[{i}]"] = course_id
 
     try:
-        response = requests.get(endpoint, params=params, timeout=10)
+        response = requests.post(endpoint, data=params, timeout=10)
         data = response.json()
     except Exception as e:
         print(f"[moodle_loader] Could not fetch assignments: {e}")
@@ -170,7 +170,7 @@ def fetch_moodle_assignment_submissions():
         params[f"assignmentids[{i}]"] = aid
 
     try:
-        response = requests.get(endpoint, params=params, timeout=10)
+        response = requests.post(endpoint, data=params, timeout=10)
         submissions_data = response.json()
     except Exception as e:
         print(f"[moodle_loader] Could not fetch submissions: {e}")
@@ -190,7 +190,7 @@ def fetch_moodle_assignment_submissions():
         grade_params[f"assignmentids[{i}]"] = aid
 
     try:
-        response = requests.get(endpoint, params=grade_params, timeout=10)
+        response = requests.post(endpoint, data=grade_params, timeout=10)
         grades_data = response.json()
     except Exception as e:
         print(f"[moodle_loader] Could not fetch grades: {e}")
@@ -255,7 +255,7 @@ def fetch_moodle_enrolled_students():
         }
 
         try:
-            response = requests.get(endpoint, params=params, timeout=10)
+            response = requests.post(endpoint, data=params, timeout=10)
             data = response.json()
         except Exception as e:
             print(f"[moodle_loader] Could not fetch enrolled users for course {course_id}: {e}")
@@ -295,7 +295,7 @@ def _get_attendance_instance_id(course_id):
         "courseid": course_id,
     }
     try:
-        response = requests.get(endpoint, params=params, timeout=10)
+        response = requests.post(endpoint, data=params, timeout=10)
         data = response.json()
     except Exception as e:
         print(f"[moodle_loader] Could not look up attendance activity for course {course_id}: {e}")
@@ -338,7 +338,7 @@ def fetch_moodle_attendance_sessions():
         }
 
         try:
-            response = requests.get(endpoint, params=params, timeout=10)
+            response = requests.post(endpoint, data=params, timeout=10)
             data = response.json()
         except Exception as e:
             print(f"[moodle_loader] Could not fetch attendance sessions for course {course_id}: {e}")
@@ -409,7 +409,7 @@ def fetch_moodle_attendance_records():
             "sessionid": session["session_id"],
         }
         try:
-            response = requests.get(endpoint, params=params, timeout=10)
+            response = requests.post(endpoint, data=params, timeout=10)
             data = response.json()
         except Exception as e:
             print(f"[moodle_loader] Could not fetch session {session['session_id']}: {e}")

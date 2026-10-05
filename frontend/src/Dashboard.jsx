@@ -68,8 +68,8 @@ function ChangePasswordCard({ studentEmail }) {
   function submit(e) {
     e.preventDefault();
     setStatus(null);
-    if (next.length < 6) {
-      setStatus({ ok: false, message: "New password must be at least 6 characters." });
+    if (next.length < 12) {
+      setStatus({ ok: false, message: "New password must be at least 12 characters." });
       return;
     }
     if (next !== confirm) {
@@ -80,7 +80,7 @@ function ChangePasswordCard({ studentEmail }) {
     fetch("/api/change-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: studentEmail, currentPassword: current, newPassword: next }),
+      body: JSON.stringify({ currentPassword: current, newPassword: next }),
     })
       .then(r => r.json().then(data => ({ ok: r.ok, data })))
       .then(({ ok, data }) => {
@@ -209,6 +209,7 @@ function Dashboard() {
   }
 
   function logout() {
+    fetch("/api/logout", { method: "POST" }).catch(() => {});
     localStorage.removeItem("loggedIn");
     localStorage.removeItem("role");
     localStorage.removeItem("studentName");

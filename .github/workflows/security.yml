@@ -1,0 +1,72 @@
+# DevSecOps pipeline for ICT306. NOTE: written and syntax-checked locally; it has not yet been run on GitHub,
+# so expect to tune action versions/paths on the first run. Local equivalents of every job were run (see docs/evidence).
+name: security
+on:
+  push: { branches: [main, ict306-security] }
+  pull_request:
+permissions: { contents: read }
+
+jobs:
+  node-tests:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend-data } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: backend-data/package-lock.json }
+      - run: npm ci
+      - run: npm test                           # 16 security regression tests (auth, RBAC, CSRF, 2FA, lockout, validation...)
+      - run: npm audit --audit-level=high       # dependency scan (SCA)
+
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install fastapi httpx pytest numpy requests bandit
+      - run: pytest backend-rag/test_security.py -q   # 30 tests; ML libraries are faked, security code is real
+      - run: bandit -q -r backend-rag moodle-integration -x backend-rag/test_security.py,backend-rag/test_generation.py,backend-rag/test_embeddings.py,backend-rag/test_retrieval.py,backend-rag/test_chunking.py --severity-level high   # SAST (Python)
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: frontend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - run: npm run build
+      - run: npm audit --audit-level=high
+
+  sast-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2        # secret scanning over full history
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+      - run: pip install semgrep
+      - run: semgrep scan --config p/owasp-top-ten --config p/javascript --config p/python --error --metrics=off backend-data backend-rag frontend/src
+
+  trivy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aquasecurity/trivy-action@0.28.0
+        with: { scan-type: fs, severity: "HIGH,CRITICAL", exit-code: "1", ignore-unfixed: true }
+
+  dast-zap:
+    runs-on: ubuntu-latest
+    needs: node-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: |
+          cd backend-data && npm ci
+          export PORT=5000 DATA_KEY=$(openssl rand -hex 32) SESSION_SECRET=$(openssl rand -hex 32) ADMIN_PASSWORD='Ci-Only-Password-123' DATA_FILE=/tmp/ci-data.json AUDIT_LOG=/tmp/ci-audit.log
+          nohup node index.js > /tmp/server.log 2>&1 &
+          sleep 3
+      - uses: zaproxy/action-baseline@v0.12.0   # DAST: passive baseline scan of the running API
+        with: { target: "http://localhost:5000/api/units", fail_action: false }

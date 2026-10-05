@@ -9,6 +9,11 @@ function Login() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [studentStep, setStudentStep] = useState("email"); // "email" | "setPassword" | "login"
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [activationCode, setActivationCode] = useState("");
+  const [code, setCode] = useState("");
+  const [needs2fa, setNeeds2fa] = useState(false);
+  const [totpUri, setTotpUri] = useState("");
   const navigate = useNavigate();
 
   function openModal(type) {
@@ -17,6 +22,11 @@ function Login() {
     setEmail("");
     setPassword("");
     setConfirmPassword("");
+    setActivationCode("");
+    setCode("");
+    setNeeds2fa(false);
+    setTotpUri("");
+    setInfo("");
     setStudentStep("email");
     setShowModal(true);
   }
@@ -46,27 +56,31 @@ function Login() {
 
   async function handleSetPassword() {
     setError("");
-    if (!password || !confirmPassword) {
-      setError("Please fill in both password fields.");
+    if (!password || !confirmPassword || !activationCode) {
+      setError("Please fill in the activation code and both password fields.");
       return;
     }
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
+    if (password.length < 12) {
+      setError("Password must be at least 12 characters.");
+      return;
+    }
     try {
       const res = await fetch("/api/set-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, activationCode: activationCode.trim() })
       });
       const data = await res.json();
       if (data.success) {
-        localStorage.setItem("loggedIn", "true");
-        localStorage.setItem("role", "student");
-        localStorage.setItem("studentName", data.name);
-        localStorage.setItem("studentEmail", email);
-        navigate("/dashboard");
+        setPassword("");
+        setConfirmPassword("");
+        setActivationCode("");
+        setStudentStep("login");
+        setInfo("Password created. Please sign in.");
       } else {
         setError(data.message);
       }
@@ -87,15 +101,16 @@ function Login() {
         const res = await fetch("/api/admin-login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ email, password, code: code || undefined })
         });
         const data = await res.json();
         if (data.success) {
           localStorage.setItem("loggedIn", "true");
-          localStorage.setItem("role", "admin");
+          localStorage.setItem("role", data.role);
           navigate("/admin");
         } else {
-          setError(data.message || "Login failed.");
+          if (data.requires2fa) setNeeds2fa(true);
+          setError(data.requires2fa && !code ? "" : (data.message || "Login failed."));
         }
       } catch {
         setError("Error connecting to server.");
@@ -121,7 +136,7 @@ function Login() {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, code: code || undefined })
       });
       const data = await res.json();
       if (data.success) {
@@ -131,7 +146,8 @@ function Login() {
         localStorage.setItem("studentEmail", email);
         navigate("/dashboard");
       } else {
-        setError(data.message || "Login failed.");
+        if (data.requires2fa) setNeeds2fa(true);
+        setError(data.requires2fa && !code ? "" : (data.message || "Login failed."));
       }
     } catch {
       setError("Error connecting to server.");
@@ -245,13 +261,13 @@ function Login() {
 
             <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 20 }}>
               <button
-                onClick={() => { setLoginType("student"); setStudentStep("email"); setError(""); setPassword(""); setConfirmPassword(""); }}
+                onClick={() => { setLoginType("student"); setStudentStep("email"); setNeeds2fa(false); setCode(""); setInfo(""); setError(""); setPassword(""); setConfirmPassword(""); }}
                 style={{ padding: "6px 14px", borderRadius: 20, border: "1px solid #1c2b3a", background: loginType === "student" ? "#1c2b3a" : "white", color: loginType === "student" ? "white" : "#1c2b3a", fontSize: 12, fontWeight: "bold", cursor: "pointer" }}
               >
                 Student
               </button>
               <button
-                onClick={() => { setLoginType("admin"); setError(""); setPassword(""); }}
+                onClick={() => { setLoginType("admin"); setNeeds2fa(false); setCode(""); setInfo(""); setError(""); setPassword(""); }}
                 style={{ padding: "6px 14px", borderRadius: 20, border: "1px solid #1c2b3a", background: loginType === "admin" ? "#1c2b3a" : "white", color: loginType === "admin" ? "white" : "#1c2b3a", fontSize: 12, fontWeight: "bold", cursor: "pointer" }}
               >
                 Admin
@@ -276,7 +292,7 @@ function Login() {
                 </label>
                 <input
                   type="password"
-                  placeholder={studentStep === "setPassword" ? "Choose a password (min 6 characters)" : "Enter your password"}
+                  placeholder={studentStep === "setPassword" ? "Choose a password (min 12 characters)" : "Enter your password"}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && studentStep !== "setPassword" && handleLogin()}
@@ -300,10 +316,40 @@ function Login() {
             )}
 
             {studentStep === "setPassword" && (
-              <p style={{ fontSize: 12, color: "#c2862a", marginBottom: 12 }}>
-                First time signing in — please create a password for your account.
-              </p>
+              <>
+                <label style={{ display: "block", textAlign: "left", fontSize: 13, fontWeight: "bold", marginBottom: 5 }}>Activation Code</label>
+                <input
+                  type="text"
+                  autoComplete="off"
+                  placeholder="Code given to you by the administrator"
+                  value={activationCode}
+                  onChange={e => setActivationCode(e.target.value)}
+                  style={{ width: "100%", padding: 11, marginBottom: 18, border: "1px solid #ccc", borderRadius: 6, fontSize: 14, boxSizing: "border-box" }}
+                />
+                <p style={{ fontSize: 12, color: "#c2862a", marginBottom: 12 }}>
+                  First time signing in — enter your activation code and create a password (12+ characters).
+                </p>
+              </>
             )}
+
+            {needs2fa && (
+              <>
+                <label style={{ display: "block", textAlign: "left", fontSize: 13, fontWeight: "bold", marginBottom: 5 }}>Authentication Code</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  placeholder="6-digit code from your authenticator app"
+                  value={code}
+                  onChange={e => setCode(e.target.value.replace(/\D/g, ""))}
+                  onKeyDown={e => e.key === "Enter" && handleLogin()}
+                  style={{ width: "100%", padding: 11, marginBottom: 18, border: "1px solid #ccc", borderRadius: 6, fontSize: 14, boxSizing: "border-box" }}
+                />
+              </>
+            )}
+
+            {info && <p style={{ color: "#1b7f3a", fontSize: 13, marginBottom: 12 }}>{info}</p>}
 
             {error && <p style={{ color: "#dc3545", fontSize: 13, marginBottom: 12 }}>{error}</p>}
 

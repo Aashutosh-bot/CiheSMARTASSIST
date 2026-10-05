@@ -1,0 +1,11 @@
+Browser end-to-end run (Playwright/Chromium, Vite dev server -> hardened Node API), 2026-10-05
+2FA prompt shown after correct admin password: OK
+Admin dashboard reached; cookies: ['csrf', 'sid'], sid HttpOnly = True; localStorage holds only UI hints ['role', 'loggedIn']
+Admin add-student dialog: one-time activation code shown (CSRF header attached by fetch wrapper): OK
+Weak password message: Password must be at least 12 characters.
+Wrong password message: Invalid email or password.
+Student dashboard reached: http://localhost:3000/dashboard
+Student calling GET /api/students after faking role=admin in localStorage -> 403
+Student POST /api/units -> 403
+After logout GET /api/me -> 401
+Note: the FastAPI RAG server was not running in this run, so /api/moodle/* and chat-insights calls failed with empty responses.

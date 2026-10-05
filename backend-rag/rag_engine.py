@@ -10,7 +10,10 @@ from sentence_transformers import SentenceTransformer
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "moodle-integration"))
 from moodle_loader import fetch_moodle_pages
 
+from guard import STAFF_PREFIX, filter_by_role
+
 DOCS_FOLDER = "documents"
+STAFF_DOCS_FOLDER = os.path.join(DOCS_FOLDER, "staff")  # staff-only knowledge (C4): never retrievable by students
 CHUNK_SIZE = 100
 OVERLAP = 20
 
@@ -45,6 +48,16 @@ def load_and_chunk_all_documents():
         for chunk in chunks:
             all_chunks.append(chunk)
             all_sources.append(filename)
+
+    if os.path.isdir(STAFF_DOCS_FOLDER):
+        for filename in os.listdir(STAFF_DOCS_FOLDER):
+            if not filename.endswith(".txt"):
+                continue
+            with open(os.path.join(STAFF_DOCS_FOLDER, filename), "r", encoding="utf-8") as f:
+                text = f.read()
+            for chunk in chunk_text(text):
+                all_chunks.append(chunk)
+                all_sources.append(STAFF_PREFIX + filename)
 
     return all_chunks, all_sources
 
@@ -95,18 +108,25 @@ def build_index():
     return index, chunks, sources
 
 
-def search(index, chunks, sources, query, top_k=3):
-    """Given a question, return the top_k most relevant chunks."""
+def search(index, chunks, sources, query, top_k=3, role="student"):
+    """
+    Return the top_k most relevant chunks the caller's role is allowed to see.
+    Retrieval is over-fetched and then filtered, so restricted chunks can never
+    reach the prompt or the "sources" shown to a student (C4).
+    """
     query_vector = model.encode([query], normalize_embeddings=True)
     query_vector = np.array(query_vector, dtype="float32")
 
-    scores, indices = index.search(query_vector, top_k)
+    fetch_k = min(len(chunks), max(top_k * 10, 30))
+    scores, indices = index.search(query_vector, fetch_k)
 
-    results = []
+    candidates = []
     for score, idx in zip(scores[0], indices[0]):
-        results.append({
+        if idx < 0:
+            continue
+        candidates.append({
             "text": chunks[idx],
             "source": sources[idx],
             "score": float(score),
         })
-    return results
+    return filter_by_role(candidates, role)[:top_k]

@@ -1,0 +1,27 @@
+== npm audit BEFORE (original backend-data) ==
+qs  2.2.5 - 6.15.3
+qs array-limit bypass via bracket-key comma parsing - https://github.com/advisories/GHSA-x5fp-wj9c-mxmx
+qs: Denial of Service via Attacker Controlled isBuffer - https://github.com/advisories/GHSA-4mjr-xmp4-gh2g
+node_modules/qs
+1 moderate severity vulnerability
+
+== npm audit AFTER (npm audit fix applied) ==
+found 0 vulnerabilities
+
+== bandit BEFORE (original Python) ==
+>> Issue: [B615:huggingface_unsafe_download] Unsafe Hugging Face Hub download without revision pinning in from_pretrained()
+   Location: /home/claude/aashutosh-bot/cihesmartassist/backend-rag/generator.py:4:12
+>> Issue: [B615:huggingface_unsafe_download] Unsafe Hugging Face Hub download without revision pinning in from_pretrained()
+   Location: /home/claude/aashutosh-bot/cihesmartassist/backend-rag/generator.py:5:8
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: 'password123'
+   Location: /home/claude/aashutosh-bot/cihesmartassist/backend-rag/main.py:56:17
+>> Issue: [B615:huggingface_unsafe_download] Unsafe Hugging Face Hub download without revision pinning in from_pretrained()
+   Location: /home/claude/aashutosh-bot/cihesmartassist/backend-rag/test_generation.py:4:12
+>> Issue: [B615:huggingface_unsafe_download] Unsafe Hugging Face Hub download without revision pinning in from_pretrained()
+   Location: /home/claude/aashutosh-bot/cihesmartassist/backend-rag/test_generation.py:5:8
+
+== bandit AFTER (application code only, tests excluded) ==
+>> Issue: [B615:huggingface_unsafe_download] Unsafe Hugging Face Hub download without revision pinning in from_pretrained()
+   Location: backend-rag/generator.py:4:12
+>> Issue: [B615:huggingface_unsafe_download] Unsafe Hugging Face Hub download without revision pinning in from_pretrained()
+   Location: backend-rag/generator.py:5:8
