@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "node --test test/security.test.js"
+    "test": "node --test test/security.test.js test/zkp.test.js"
   },
   "keywords": [],
   "author": "",

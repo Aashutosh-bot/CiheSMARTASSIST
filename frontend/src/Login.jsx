@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { makeEnrolment, makeProof } from "./zkp.js";
 
 function Login() {
   const [showModal, setShowModal] = useState(false);
@@ -14,6 +15,9 @@ function Login() {
   const [code, setCode] = useState("");
   const [needs2fa, setNeeds2fa] = useState(false);
   const [totpUri, setTotpUri] = useState("");
+  const [zkpEnrol, setZkpEnrol] = useState(false); // opt in to zero-knowledge sign-in after a password login
+  const [zkpLog, setZkpLog] = useState("");
+  const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
 
   function openModal(type) {
@@ -27,6 +31,8 @@ function Login() {
     setNeeds2fa(false);
     setTotpUri("");
     setInfo("");
+    setZkpEnrol(false);
+    setZkpLog("");
     setStudentStep("email");
     setShowModal(true);
   }
@@ -140,6 +146,15 @@ function Login() {
       });
       const data = await res.json();
       if (data.success) {
+        if (zkpEnrol) {
+          try { // opt-in: store only a public key derived from the password in this browser
+            await fetch("/api/zkp/enroll", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(await makeEnrolment(password))
+            });
+          } catch { /* enrolment is optional; normal sign-in already succeeded */ }
+        }
         localStorage.setItem("loggedIn", "true");
         localStorage.setItem("role", "student");
         localStorage.setItem("studentName", data.name);
@@ -151,6 +166,52 @@ function Login() {
       }
     } catch {
       setError("Error connecting to server.");
+    }
+  }
+
+  // Zero-knowledge sign-in: the browser proves it knows the password without sending it (Schnorr proof).
+  async function handleZkpLogin() {
+    setError("");
+    setInfo("");
+    setZkpLog("");
+    if (!email || !password) {
+      setError("Enter your email and password. The password stays in this browser.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const chRes = await fetch("/api/zkp/challenge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      const challenge = await chRes.json();
+      if (!challenge.success) {
+        setError(challenge.message || "Could not start zero-knowledge sign-in.");
+        return;
+      }
+      const proof = await makeProof(email, password, challenge);
+      const short = h => h.slice(0, 18) + "..." + h.slice(-8);
+      const res = await fetch("/api/zkp/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, nonce: challenge.nonce, t: proof.t, s: proof.s })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setZkpLog(`Sent to server: commitment t = ${short(proof.t)}, response s = ${short(proof.s)}. Password sent: NO. Server verified g^s = t * y^c.`);
+        localStorage.setItem("loggedIn", "true");
+        localStorage.setItem("role", data.role);
+        localStorage.setItem("studentName", data.name);
+        localStorage.setItem("studentEmail", email);
+        setTimeout(() => navigate(data.role === "student" ? "/dashboard" : "/admin"), 2500);
+      } else {
+        setError(data.message === "Invalid email or proof." ? "Zero-knowledge sign-in failed. Check your password, or sign in normally and enable it first." : (data.message || "Sign-in failed."));
+      }
+    } catch {
+      setError("Error connecting to server.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -348,6 +409,25 @@ function Login() {
                 />
               </>
             )}
+
+            {loginType === "student" && studentStep === "login" && (
+              <div style={{ textAlign: "left", marginBottom: 14, padding: 12, border: "1px dashed #bb5533", borderRadius: 8, background: "#fff8f3" }}>
+                <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12, color: "#1c2b3a", cursor: "pointer" }}>
+                  <input type="checkbox" checked={zkpEnrol} onChange={e => setZkpEnrol(e.target.checked)} style={{ marginTop: 2 }} />
+                  <span>Enable zero-knowledge sign-in for this account when I sign in with my password (stores only a public key).</span>
+                </label>
+                <button
+                  onClick={handleZkpLogin}
+                  disabled={busy}
+                  style={{ width: "100%", marginTop: 10, padding: 10, background: "white", color: "#bb5533", fontSize: 13, fontWeight: "bold", border: "1px solid #bb5533", borderRadius: 6, cursor: busy ? "wait" : "pointer" }}
+                >
+                  {busy ? "Proving..." : "Sign in with zero-knowledge proof"}
+                </button>
+                <p style={{ fontSize: 11, color: "#888", margin: "8px 0 0" }}>The password never leaves your browser. Only a mathematical proof is sent.</p>
+              </div>
+            )}
+
+            {zkpLog && <p style={{ color: "#1b7f3a", fontSize: 12, marginBottom: 12, wordBreak: "break-all", textAlign: "left" }}>{zkpLog}</p>}
 
             {info && <p style={{ color: "#1b7f3a", fontSize: 13, marginBottom: 12 }}>{info}</p>}
 

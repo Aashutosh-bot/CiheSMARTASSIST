@@ -42,3 +42,20 @@ Patch management: `npm audit` and Dependabot weekly; CI fails on high-severity a
 
 ## Evidence
 `docs/evidence/`: `baseline_attack_results.txt` vs `hardened_attack_results.txt` (same script, original vs hardened), `dependency_and_sast_results.txt`, `e2e_browser_results.txt`.
+
+## Zero-knowledge login (opt-in, requirement AU3)
+
+A signed-in user can enrol for zero-knowledge sign-in. The browser derives a secret `x = PBKDF2-SHA256(password, salt)`
+and sends the server only `y = g^x mod p` plus the salt. To sign in, the browser proves knowledge of `x` with a Schnorr
+proof (Fiat-Shamir, server-issued single-use nonce): it sends `t = g^r` and `s = r + c*x mod q`, and the server checks
+`g^s == t * y^c (mod p)`. The password and `x` are never transmitted or stored. Group: RFC 3526 group 14 (2048-bit safe prime).
+
+Code: `backend-data/zkp.js`, `frontend/src/zkp.js`; endpoints `/api/zkp/challenge`, `/api/zkp/login`, `/api/zkp/enroll`;
+tests `backend-data/test/zkp.test.js` (9 tests: valid login, wrong password, replay, cross-account, lockout, weak keys,
+password-change invalidation, 2FA not bypassed, no enumeration).
+
+Honest limits: the protocol is a standard Schnorr proof but this implementation is our own and not independently audited;
+the stored public key `y` allows offline guessing of weak passwords if the data file leaks (hence the slow PBKDF2 and the
+12-character policy); the browser big-integer arithmetic is not constant-time; accounts that require 2FA (admin, lecturer, any
+student with TOTP) still use password + code, because the proof replaces only the password step; the password path remains
+available alongside it.

@@ -6,6 +6,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const sec = require("./security");
+const zkp = require("./zkp");
 
 const app = express();
 app.disable("x-powered-by");
@@ -169,12 +170,12 @@ sec.setUserLookup((email, role) => {
 });
 
 function publicStudent(s) {
-  const { password, totpSecret, totpPending, lastTotpStep, activation, ...safe } = s;
-  return { ...safe, totpEnabled: !!s.totpEnabled, activationPending: !!activation };
+  const { password, totpSecret, totpPending, lastTotpStep, activation, zkp: zkpRecord, ...safe } = s;
+  return { ...safe, totpEnabled: !!s.totpEnabled, zkpEnabled: !!zkpRecord, activationPending: !!activation };
 }
 function publicStaff(s) {
-  const { password, totpSecret, totpPending, lastTotpStep, activation, ...safe } = s;
-  return { ...safe, activationPending: !!activation };
+  const { password, totpSecret, totpPending, lastTotpStep, activation, zkp: zkpRecord, ...safe } = s;
+  return { ...safe, zkpEnabled: !!zkpRecord, activationPending: !!activation };
 }
 // Lecturers only see/act on their own units; admins see everything.
 const staffUnits = req => (req.user.role === "admin" ? null : req.user.unitCodes || []);
@@ -238,6 +239,63 @@ async function login(req, res, pool) {
 app.post("/api/login", sec.loginLimiter, (req, res, next) => login(req, res, "student").catch(next));
 app.post("/api/admin-login", sec.loginLimiter, (req, res, next) => login(req, res, "staff").catch(next));
 
+// ================================================================ Zero-knowledge login (opt-in, Schnorr proof)
+// The browser proves it knows the password-derived secret without sending the password or the secret.
+function findAnyByEmail(email) { return findStudentByEmail(email) || findStaffByEmail(email); }
+
+app.post("/api/zkp/challenge", sec.loginLimiter, async (req, res, next) => {
+  try {
+    await ready;
+    const { email } = req.body || {};
+    if (!sec.isEmail(email)) return bad(res, "Invalid request.", 400);
+    const key = norm(email);
+    const user = findAnyByEmail(key);
+    const salt = user && user.zkp ? user.zkp.salt : zkp.fakeSalt(sec.keyedHash, key); // decoy: no account enumeration
+    res.json({ success: true, nonce: zkp.newChallenge(key), salt });
+  } catch (e) { next(e); }
+});
+
+app.post("/api/zkp/login", sec.loginLimiter, async (req, res, next) => {
+  try {
+    await ready;
+    const { email, nonce, t, s } = req.body || {};
+    if (!sec.isEmail(email) || typeof nonce !== "string") return bad(res, "Invalid email or proof.", 401);
+    const key = norm(email);
+    if (sec.isLocked(key)) {
+      sec.audit("login_blocked_locked", { account: key, ip: req.ip, method: "zkp" });
+      return bad(res, "Account temporarily locked. Try again later.", 429);
+    }
+    const user = findAnyByEmail(key);
+    const ok = zkp.verifyProof({ email: key, nonce, t, s }, user && user.zkp);
+    if (!ok) {
+      sec.recordFailure(key, req.ip);
+      sec.audit("zkp_login_failure", { account: key, ip: req.ip });
+      return bad(res, "Invalid email or proof.", 401);
+    }
+    // Accounts that require a second factor must use the password + code path for now.
+    if (user.role === "admin" || user.role === "lecturer" || user.totpEnabled) {
+      sec.audit("zkp_login_refused_2fa", { account: key, ip: req.ip });
+      return bad(res, "This account requires two-factor sign-in. Use your password and authenticator code.", 403);
+    }
+    sec.clearFailures(key);
+    const role = findStudentByEmail(key) ? "student" : user.role;
+    sec.issueSession(res, { email: user.email, role });
+    sec.audit("zkp_login_success", { account: key, role, ip: req.ip });
+    res.json({ success: true, name: user.name, role });
+  } catch (e) { next(e); }
+});
+
+// Enrol (or re-enrol) the signed-in user. Only the public key and salt are stored.
+app.post("/api/zkp/enroll", sec.requireAuth, (req, res) => {
+  const user = req.user.role === "student" ? findStudentByEmail(req.user.email) : findStaffByEmail(req.user.email);
+  const rec = zkp.parseEnrolment(req.body);
+  if (!rec) return bad(res, "Invalid zero-knowledge enrolment data.");
+  user.zkp = rec;
+  saveData();
+  sec.audit("zkp_enrolled", { account: user.email });
+  res.json({ success: true });
+});
+
 app.post("/api/logout", (req, res) => {
   const claims = sec.decodeSession(req);
   sec.clearSession(req, res);
@@ -277,6 +335,7 @@ app.post("/api/set-password", sec.loginLimiter, async (req, res, next) => {
     const policy = sec.passwordPolicyError(password, email);
     if (policy) return bad(res, policy);
     user.password = await sec.hashPassword(password);
+    delete user.zkp; // the ZKP key is derived from the password: re-enrol after any reset
     delete user.activation;
     let totpUri;
     if (member) { // staff must use 2FA
@@ -303,6 +362,7 @@ app.post("/api/change-password", sec.requireAuth, async (req, res, next) => {
     const policy = sec.passwordPolicyError(newPassword, user.email);
     if (policy) return bad(res, policy);
     user.password = await sec.hashPassword(newPassword);
+    delete user.zkp; // old password-derived ZKP key must stop working
     saveData();
     sec.audit("password_changed", { account: user.email });
     res.json({ success: true });
@@ -547,6 +607,7 @@ app.post("/api/students/:id/activation", sec.requireAuth, adminOnly, (req, res) 
   const student = students.find(s => s.id === Number(req.params.id));
   if (!student) return bad(res, "Student not found.", 404);
   const activationCode = newActivation(student);
+  delete student.zkp;
   student.password = ""; // re-issuing resets credentials: this doubles as the admin password-reset path
   student.totpEnabled = false; delete student.totpSecret; delete student.totpPending;
   sec.audit("activation_reissued", { actor: req.user.email, id: student.id });

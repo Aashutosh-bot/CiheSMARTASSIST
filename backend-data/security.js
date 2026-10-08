@@ -217,8 +217,11 @@ function decryptData(envelope, key) {
   return Buffer.concat([d.update(Buffer.from(data, "base64")), d.final()]).toString("utf8");
 }
 
+// Keyed hash for deriving stable per-email decoy values without exposing the session secret.
+const keyedHash = (label, value) => crypto.createHmac("sha256", SESSION_SECRET).update(label + "|" + value).digest("hex");
+
 module.exports = {
-  IS_PROD, hashPassword, verifyPassword, dummyVerify, passwordPolicyError,
+  keyedHash, IS_PROD, hashPassword, verifyPassword, dummyVerify, passwordPolicyError,
   isEmail, isUnitCode, isStr, optStr, isDate, normEmail,
   audit, isLocked, recordFailure, clearFailures, resetLockouts, loginLimiter, apiLimiter,
   issueSession, clearSession, decodeSession, setUserLookup, requireAuth, requireRole,
