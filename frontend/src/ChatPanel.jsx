@@ -1,0 +1,193 @@
+import { useState, useRef, useEffect } from "react";
+
+const NAVY = "#1c2b3a";
+const GOLD = "#c2862a";
+
+function BotAvatar({ size = 44 }) {
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", background: NAVY, color: "#fffaf3", display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.36, fontWeight: "bold", letterSpacing: 0.5, flexShrink: 0 }}>
+      SA
+    </div>
+  );
+}
+
+function ChatIllustration() {
+  return (
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={NAVY} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" />
+    </svg>
+  );
+}
+
+const DEFAULT_PROMPTS = [
+  "What's my attendance percentage?",
+  "What's my next assignment deadline?",
+  "When's my next class and what room?",
+  "What's the attendance policy?",
+];
+
+function TypingDots() {
+  return (
+    <span style={{ display: "inline-flex", gap: 4, padding: "4px 2px" }}>
+      {[0, 1, 2].map(i => (
+        <span
+          key={i}
+          style={{
+            width: 6, height: 6, borderRadius: "50%", background: "#aab4c2",
+            animation: "smartassist-bounce 1.2s infinite ease-in-out",
+            animationDelay: `${i * 0.15}s`,
+          }}
+        />
+      ))}
+      <style>{`
+        @keyframes smartassist-bounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+          40% { transform: translateY(-4px); opacity: 1; }
+        }
+      `}</style>
+    </span>
+  );
+}
+
+function ChatPanel({ title = "CIHE SmartAssist", subtitle = "Your AI campus assistant — ask me anything about units, fees, attendance, enrolment and more.", suggestedPrompts = DEFAULT_PROMPTS, greetingName = "" }) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, sending]);
+
+  async function sendMessage(overrideText) {
+    const textToSend = overrideText !== undefined ? overrideText : input;
+    if (!textToSend.trim() || sending) return;
+    setMessages(prev => [...prev, { role: "user", text: textToSend }]);
+    setInput("");
+    setSending(true);
+    try {
+      const email = localStorage.getItem("studentEmail") || "";
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: textToSend, email }),
+      });
+      const data = await res.json();
+      setMessages(prev => [...prev, { role: "bot", text: data.text, sources: data.sources, unmatched: data.unmatched }]);
+    } catch {
+      setMessages(prev => [...prev, { role: "bot", text: "Error connecting to server.", unmatched: true }]);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+      {/* HEADER */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 24px", borderBottom: "1px solid #e3d9c6", background: "#fffaf3", flexShrink: 0 }}>
+        <BotAvatar />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 16, fontWeight: "bold", color: NAVY }}>{title}</div>
+          <div style={{ fontSize: 12, color: "#888" }}>{subtitle}</div>
+        </div>
+      </div>
+
+      {/* MESSAGES */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "24px 24px 8px", background: "#f3ede1" }}>
+        {messages.length === 0 && (
+          <div style={{ maxWidth: 560, margin: "20px auto", textAlign: "center" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}><ChatIllustration /></div>
+            <div style={{ fontSize: 17, fontWeight: "bold", color: NAVY, marginBottom: 6 }}>
+              {greetingName ? `Hi ${greetingName}, how can I help?` : "How can I help?"}
+            </div>
+            <div style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>
+              Try one of these, or type your own question below.
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+              {suggestedPrompts.map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => sendMessage(p)}
+                  style={{
+                    padding: "9px 16px", borderRadius: 20, border: `1px solid ${NAVY}`,
+                    background: "#fffaf3", color: NAVY, fontSize: 12.5, cursor: "pointer",
+                  }}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div style={{ maxWidth: 680, margin: "0 auto", display: "flex", flexDirection: "column", gap: 14 }}>
+          {messages.map((m, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
+              {m.role === "bot" && <div style={{ marginRight: 8 }}><BotAvatar size={30} /></div>}
+              <div style={{ maxWidth: "75%" }}>
+                <div
+                  style={{
+                    background: m.role === "user" ? NAVY : "#fffaf3",
+                    color: m.role === "user" ? "white" : "#222",
+                    padding: "11px 16px",
+                    borderRadius: m.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+                    fontSize: 14, lineHeight: 1.5,
+                    boxShadow: m.role === "bot" ? "0 1px 4px rgba(0,0,0,0.06)" : "none",
+                  }}
+                >
+                  {m.text}
+                </div>
+                {m.role === "bot" && m.sources && m.sources.length > 0 && !m.unmatched && (
+                  <div style={{ fontSize: 10.5, color: "#aaa", marginTop: 4, marginLeft: 2 }}>
+                    Source: {m.sources.join(", ")}
+                  </div>
+                )}
+                {m.unmatched && (
+                  <div style={{ fontSize: 10.5, color: GOLD, marginTop: 4, marginLeft: 2, fontWeight: "bold" }}>
+                    Escalated to Student Services
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {sending && (
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <div style={{ marginRight: 8 }}><BotAvatar size={30} /></div>
+              <div style={{ background: "#fffaf3", borderRadius: "16px 16px 16px 4px", padding: "11px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+                <TypingDots />
+              </div>
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+      </div>
+
+      {/* INPUT */}
+      <div style={{ padding: "16px 24px 20px", background: "#fffaf3", borderTop: "1px solid #e3d9c6", flexShrink: 0 }}>
+        <div style={{ maxWidth: 680, margin: "0 auto", display: "flex", gap: 10 }}>
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && sendMessage()}
+            placeholder="Ask me anything about your course..."
+            style={{ flex: 1, padding: "13px 16px", borderRadius: 24, border: "1px solid #d7dde5", fontSize: 14, outline: "none" }}
+          />
+          <button
+            onClick={() => sendMessage()}
+            disabled={sending || !input.trim()}
+            style={{
+              padding: "0 22px", background: NAVY, color: "white", border: "none", borderRadius: 24,
+              fontSize: 14, fontWeight: "bold", cursor: sending || !input.trim() ? "default" : "pointer",
+              opacity: sending || !input.trim() ? 0.6 : 1,
+            }}
+          >
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ChatPanel;

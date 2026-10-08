@@ -1,7 +1,13 @@
 export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-export const SEMESTER_START = "2026-07-24";
-export const SEMESTER_END = "2026-11-20";
+export const SEMESTERS = {
+  "Semester 1, 2026": { start: "2026-02-16", end: "2026-06-12" },
+  "Semester 2, 2026": { start: "2026-07-24", end: "2026-11-20" }
+};
+export const SEMESTER_OPTIONS = Object.keys(SEMESTERS);
+export const DEFAULT_SEMESTER = "Semester 2, 2026";
+export const TEACHING_WEEKS = 12;
+export const ALL_UNITS = "ALL";
 
 function parseDate(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -55,10 +61,4 @@ export function formatWeekRange(week) {
 
 export function todayStr() {
   return toDateStr(new Date());
-}
-
-export const WEEKS_PER_TERM = 6;
-
-export function termLabel(weekIndex) {
-  return `Term ${Math.floor(weekIndex / WEEKS_PER_TERM) + 1}`;
 }
